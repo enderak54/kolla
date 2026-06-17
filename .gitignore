@@ -1,0 +1,11 @@
+.pio/
+.pioenvs/
+.piolibdeps/
+__pycache__/
+*.o
+*.d
+*.elf
+*.map
+*.bin
+.vscode/
+src/config.h
