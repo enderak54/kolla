@@ -32,7 +32,6 @@ const unsigned long Z_AIO       = 5000;
 const unsigned long Z_RECONNECT = 5000;
 const unsigned long Z_LOST_EKRAN= 3000;
 const unsigned long Z_IP_EKRAN  = 3000;
-const unsigned long Z_FLASH     = 100;
 const unsigned long Z_NOKTA     = 500;
 const unsigned long Z_SAYFA     = 3000;
 
@@ -62,12 +61,10 @@ bool normalMod     = false;
 bool ipGosterildi  = false;
 bool lostDurum     = false;
 bool ekranKapali   = false;
-bool flashAktif    = false;
 bool gazAlarm      = false;
 bool alarmGonderildi = false;
 bool noktaDurum    = false;
 bool baglantiOldu  = false;
-int  flashSayac    = 0;
 bool flashRenk     = false;
 int  ekranSayfa    = 0;
 unsigned long tSon_ekranSayfa = 0;
@@ -186,30 +183,23 @@ void aioMQTTBaglan() {
 void gazKontrol() {
     bool gazDurum = digitalRead(MQ2_PIN);
 
-    // Gaz basladi
     if (gazDurum == LOW && !gazAlarm) {
         gazAlarm = true;
         alarmGonderildi = false;
-        flashAktif = true;
-        flashSayac = 0;
-        flashRenk = false;
-        tSon_flash = 0;
         digitalWrite(RELAY_PIN, LOW);
+        Serial.println("[ALARM] GAZ KACAGI TESPIT EDILDI!");
     }
 
-    // Gaz gecti
     if (gazDurum == HIGH && gazAlarm) {
         gazAlarm = false;
-        flashAktif = false;
         digitalWrite(RELAY_PIN, HIGH);
         u8g2.setPowerSave(0);
         ekranKapali = false;
         lostDurum = false;
+        Serial.println("[ALARM] Gaz tehlikesi gecti");
     }
 
-    // Alarm mesaji (tek sefer)
     if (gazAlarm && !alarmGonderildi) {
-        Serial.println("[ALARM] GAZ KACAGI TESPIT EDILDI!");
         if (lokalMQTT.connected()) {
             lokalMQTT.publish(LOKAL_TOPIC_ALARM, "GAZ KACAGI - ACIL DURUM");
             Serial.println("[MQTT] Alarm mesaji gonderildi");
@@ -218,38 +208,32 @@ void gazKontrol() {
     }
 }
 
-// --- OLED Flash (non-blocking, 5 kez) ---
+// --- OLED Uyari (beyaz ekran + siyah TEHLIKE!) ---
 void flashGuncelle() {
-    if (!flashAktif) return;
-
     unsigned long now = millis();
-    if (now - tSon_flash >= Z_FLASH) {
+
+    if (gazAlarm && !flashRenk) {
+        flashRenk = true;
         tSon_flash = now;
-        flashRenk = !flashRenk;
+        u8g2.clearBuffer();
+        u8g2.drawBox(0, 0, 72, 40);
+        u8g2.setDrawColor(0);
+        u8g2.setFont(u8g2_font_ncenB10_tr);
+        const char* txt = "TEHLIKE!";
+        u8g2.setCursor((72 - u8g2.getStrWidth(txt)) / 2, 25);
+        u8g2.print(txt);
+        u8g2.sendBuffer();
+        u8g2.setDrawColor(1);
+    }
 
-        if (flashRenk) {
-            u8g2.clearBuffer();
-            u8g2.setFont(u8g2_font_profont22_tf);
-            u8g2.setCursor(0, 28);
-            u8g2.print("TEHLIKE!");
-            u8g2.sendBuffer();
-        } else {
-            u8g2.clearBuffer();
-            u8g2.sendBuffer();
-        }
-
-        flashSayac++;
-        if (flashSayac >= 10) {
-            flashAktif = false;
-            flashSayac = 0;
-            ekranKapali = false;
-        }
+    if (!gazAlarm && flashRenk && now - tSon_flash >= 2000) {
+        flashRenk = false;
     }
 }
 
 // --- OLED Ekran (200ms) ---
 void oledGuncelle() {
-    if (flashAktif) return;
+    if (flashRenk) return;
     if (ekranKapali) return;
     if (!normalMod) return;
 
