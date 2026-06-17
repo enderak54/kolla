@@ -4,10 +4,7 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <driver/i2s.h>
-#include <driver/temp_sensor.h>
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
+
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <math.h>
@@ -23,12 +20,6 @@
 
 #include "config.h"
 
-// --- BLE ---
-#define BLE_SERVIS_UUID        "4fa28cd0-e1dd-450b-a652-3213c4c92b9d"
-#define BLE_KARAKTERISTIK_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-BLECharacteristic* pBLEChar;
-bool bleBagli = false;
-
 // --- I2S ---
 #define I2S_BUFFER_LEN 64
 #define I2S_PORT       I2S_NUM_0
@@ -38,12 +29,12 @@ const unsigned long Z_OLED      = 200;
 const unsigned long Z_TELEMETRI = 1000;
 const unsigned long Z_LOKAL_MQTT= 1000;
 const unsigned long Z_AIO       = 5000;
-const unsigned long Z_BLE       = 1000;
 const unsigned long Z_RECONNECT = 5000;
 const unsigned long Z_LOST_EKRAN= 3000;
 const unsigned long Z_IP_EKRAN  = 3000;
 const unsigned long Z_FLASH     = 100;
 const unsigned long Z_NOKTA     = 500;
+const unsigned long Z_SAYFA     = 3000;
 
 // --- Nesneler ---
 U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0);
@@ -58,7 +49,6 @@ unsigned long tSon_oled      = 0;
 unsigned long tSon_telem     = 0;
 unsigned long tSon_lokalMqtt = 0;
 unsigned long tSon_aio       = 0;
-unsigned long tSon_ble       = 0;
 unsigned long tSon_reconnect = 0;
 unsigned long tSon_lostEkran = 0;
 unsigned long tSon_ipEkran   = 0;
@@ -76,8 +66,11 @@ bool flashAktif    = false;
 bool gazAlarm      = false;
 bool alarmGonderildi = false;
 bool noktaDurum    = false;
+bool baglantiOldu  = false;
 int  flashSayac    = 0;
 bool flashRenk     = false;
+int  ekranSayfa    = 0;
+unsigned long tSon_ekranSayfa = 0;
 
 float sicaklik   = 0;
 float nem        = 0;
@@ -130,27 +123,22 @@ bool bmeBaslat() {
     Wire.begin(SDA_PIN, SCL_PIN);
     for (uint8_t adr = 0x76; adr <= 0x77; adr++) {
         Wire.beginTransmission(adr);
-        if (Wire.endTransmission() == 0 && bme.begin(adr)) return true;
+        if (Wire.endTransmission() == 0 && bme.begin(adr)) {
+            Serial.printf("[BME280] Bulundu: 0x%X\n", adr);
+            return true;
+        }
     }
+    Serial.println("[BME280] Bulunamadi!");
     return false;
 }
 
-// --- Dahili Sicaklik ---
-bool cpuIsiBaslat() {
-    temp_sensor_config_t ts = TEMP_SENSOR_CONFIG_DEFAULT(-10, 100);
-    temp_sensor_set_config(ts);
-    temp_sensor_start();
-    return true;
-}
-
 float cpuIsiOku() {
-    float t = 0;
-    temp_sensor_read_celsius(&t);
-    return t;
+    return temperatureRead();
 }
 
 // --- WiFi ---
 void wifiBaglan() {
+    Serial.printf("[WIFI] Baglaniyor: %s\n", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_SIFRE);
 }
 
@@ -173,9 +161,12 @@ void lokalMQTTCallback(char* topic, byte* payload, unsigned int length) {
 void lokalMQTTBaglan() {
     if (lokalMQTT.connect("ESP32C3_Medikal_Lokal")) {
         lokalBagli = true;
+        baglantiOldu = true;
         lokalMQTT.subscribe(LOKAL_TOPIC_KOMUT);
+        Serial.println("[MQTT] Lokal broker'a baglandi");
     } else {
         lokalBagli = false;
+        Serial.printf("[MQTT] Lokal baglanti basarisiz! Kod: %d\n", lokalMQTT.state());
     }
 }
 
@@ -184,43 +175,11 @@ void aioMQTTBaglan() {
     String id = "ESP32C3_Set1_" + String(random(0, 999));
     if (aioMQTT.connect(id.c_str(), AIO_KULLANICI, AIO_SIFRE)) {
         aioBagli = true;
+        Serial.println("[AIO] Adafruit IO'ya baglandi");
     } else {
         aioBagli = false;
+        Serial.printf("[AIO] Baglanti basarisiz! Kod: %d\n", aioMQTT.state());
     }
-}
-
-// --- BLE ---
-class BLEBaglanti : public BLEServerCallbacks {
-    void onConnect(BLEServer*) { bleBagli = true; }
-    void onDisconnect(BLEServer* p) {
-        bleBagli = false;
-        BLEDevice::startAdvertising();
-    }
-};
-
-class BLEKomut : public BLECharacteristicCallbacks {
-    void onWrite(BLECharacteristic* c) {
-        String v = String(c->getValue().c_str());
-        v.trim();
-        if (v == "1") digitalWrite(RELAY_PIN, LOW);
-        else if (v == "0") digitalWrite(RELAY_PIN, HIGH);
-    }
-};
-
-void bleBaslat() {
-    BLEDevice::init("ESP32C3_MEDIKAL");
-    BLEServer* srv = BLEDevice::createServer();
-    srv->setCallbacks(new BLEBaglanti());
-    BLEService* svc = srv->createService(BLE_SERVIS_UUID);
-    pBLEChar = svc->createCharacteristic(
-        BLE_KARAKTERISTIK_UUID,
-        BLECharacteristic::PROPERTY_READ |
-        BLECharacteristic::PROPERTY_WRITE |
-        BLECharacteristic::PROPERTY_NOTIFY
-    );
-    pBLEChar->setCallbacks(new BLEKomut());
-    svc->start();
-    BLEDevice::getAdvertising()->start();
 }
 
 // --- Gaz Kesme (non-blocking) ---
@@ -250,8 +209,10 @@ void gazKontrol() {
 
     // Alarm mesaji (tek sefer)
     if (gazAlarm && !alarmGonderildi) {
+        Serial.println("[ALARM] GAZ KACAGI TESPIT EDILDI!");
         if (lokalMQTT.connected()) {
             lokalMQTT.publish(LOKAL_TOPIC_ALARM, "GAZ KACAGI - ACIL DURUM");
+            Serial.println("[MQTT] Alarm mesaji gonderildi");
         }
         alarmGonderildi = true;
     }
@@ -292,18 +253,33 @@ void oledGuncelle() {
     if (ekranKapali) return;
     if (!normalMod) return;
 
-    u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_logisoso16_tf);
-    char satir1[16];
-    snprintf(satir1, sizeof(satir1), "%.1f%cC", sicaklik, (char)248);
-    u8g2.setCursor(0, 18);
-    u8g2.print(satir1);
+    if (millis() - tSon_ekranSayfa >= Z_SAYFA) {
+        tSon_ekranSayfa = millis();
+        ekranSayfa = (ekranSayfa + 1) % 3;
+    }
 
-    u8g2.setFont(u8g2_font_profont22_tf);
-    char satir2[16];
-    snprintf(satir2, sizeof(satir2), "Nem: %.0f%%", nem);
-    u8g2.setCursor(0, 40);
-    u8g2.print(satir2);
+    u8g2.clearBuffer();
+
+    const char* etiket;
+    char deger[16];
+
+    if (ekranSayfa == 0) {
+        etiket = "ISI";
+        snprintf(deger, sizeof(deger), "%.1f", sicaklik);
+    } else if (ekranSayfa == 1) {
+        etiket = "NEM";
+        snprintf(deger, sizeof(deger), "%.0f", nem);
+    } else {
+        etiket = "BASINC";
+        snprintf(deger, sizeof(deger), "%.0f", basinc);
+    }
+
+    u8g2.setFont(u8g2_font_ncenB08_tr);
+    u8g2.setCursor((72 - u8g2.getStrWidth(etiket)) / 2, 12);
+    u8g2.print(etiket);
+    u8g2.setFont(u8g2_font_fub11_tr);
+    u8g2.setCursor((72 - u8g2.getStrWidth(deger)) / 2, 35);
+    u8g2.print(deger);
 
     u8g2.sendBuffer();
 }
@@ -334,22 +310,24 @@ void ipGoster() {
         tSon_ipEkran = millis();
         ipGosterildi = true;
         u8g2.clearBuffer();
-        u8g2.setFont(u8g2_font_profont22_tf);
-        u8g2.setCursor(0, 20);
-        u8g2.print("IP:");
-        u8g2.setCursor(0, 40);
+        u8g2.setFont(u8g2_font_5x7_tf);
+        u8g2.setCursor(0, 10);
+        u8g2.print("IP Baglandi");
+        u8g2.setCursor(0, 25);
         u8g2.print(WiFi.localIP().toString().c_str());
         u8g2.sendBuffer();
     }
     if (ipGosterildi && millis() - tSon_ipEkran >= Z_IP_EKRAN) {
         ipGosterildi = false;
         normalMod = true;
+        tSon_ekranSayfa = millis();
     }
 }
 
 // --- Baglanti Kaybi Yonetimi ---
 void baglantiKaybiKontrol() {
     if (gazAlarm) return;
+    if (!baglantiOldu) return;
 
     bool kayip = (!wifiBagli || !lokalBagli);
 
@@ -388,6 +366,8 @@ void sensorOku() {
     sesSeviye = sesOkuRMS();
     cpuIsi   = cpuIsiOku();
     bosRam   = ESP.getFreeHeap();
+    Serial.printf("[SENSOR] %.1fC %.0f%% %.1fhPa Ses:%.2f CPU:%.1fC RAM:%u\n",
+                  sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam);
 
     if (bosRam < 30720) esp_restart();
     if (cpuIsi >= 75.0) esp_restart();
@@ -410,21 +390,13 @@ void aioGonder() {
     aioMQTT.publish(AIO_TOPIC_BASINC, String(basinc, 0).c_str());
 }
 
-// --- BLE Gonder (1 sn) ---
-void bleGonder() {
-    if (!bleBagli) return;
-    String paket = "Isi:" + String(sicaklik, 1) + "C|Nem:%" + String(nem, 0) +
-                   "|Bas:" + String(basinc, 0) + "hPa" +
-                   "|S:" + String((int)sesSeviye) +
-                   "|Cpu:" + String(cpuIsi, 1) + "C" +
-                   "|Ram:" + String(bosRam / 1024) + "KB";
-    pBLEChar->setValue(paket.c_str());
-    pBLEChar->notify();
-}
-
 // ===================================================================
 void setup() {
     Serial.begin(115200);
+    delay(100);
+    Serial.println("\n========================================");
+    Serial.println("[SISTEM] ESP32-C3 Medikal Takip Basliyor");
+    Serial.println("========================================");
 
     pinMode(MQ2_PIN, INPUT);
     pinMode(RELAY_PIN, OUTPUT);
@@ -444,8 +416,6 @@ void setup() {
 
     bmeBaslat();
     i2sBaslat();
-    cpuIsiBaslat();
-    bleBaslat();
 
     wifiBaglan();
 
@@ -471,10 +441,11 @@ void loop() {
         wifiBagli = true;
         ipGosterildi = false;
         normalMod = false;
+        Serial.printf("[WIFI] Baglandi! IP: %s\n", WiFi.localIP().toString().c_str());
     }
 
-    // IP goster (ilk baglantida)
-    if (wifiBagli && !ipGosterildi && !normalMod) {
+    // IP goster ve 3sn bekle (her dongu kontrol)
+    if (wifiBagli && !normalMod) {
         ipGoster();
     }
 
@@ -522,14 +493,6 @@ void loop() {
         tSon_aio = now;
         if (normalMod && aioBagli) {
             aioGonder();
-        }
-    }
-
-    // --- BLE Gonderim (1 sn) ---
-    if (now - tSon_ble >= Z_BLE) {
-        tSon_ble = now;
-        if (normalMod) {
-            bleGonder();
         }
     }
 
