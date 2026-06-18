@@ -49,6 +49,7 @@ unsigned long tSon_telem     = 0;
 unsigned long tSon_lokalMqtt = 0;
 unsigned long tSon_aio       = 0;
 unsigned long tSon_reconnect = 0;
+unsigned long tSon_aioReconnect = 0;
 unsigned long tSon_lostEkran = 0;
 unsigned long tSon_ipEkran   = 0;
 unsigned long tSon_flash     = 0;
@@ -444,8 +445,8 @@ void loop() {
 
     // --- Adafruit IO MQTT ---
     if (WiFi.status() == WL_CONNECTED && !aioMQTT.connected()) {
-        if (now - tSon_reconnect >= Z_RECONNECT) {
-            tSon_reconnect = now;
+        if (now - tSon_aioReconnect >= Z_RECONNECT) {
+            tSon_aioReconnect = now;
             aioMQTTBaglan();
         }
     }
