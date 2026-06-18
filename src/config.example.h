@@ -20,3 +20,7 @@ const char* AIO_SIFRE     = "aio_xxxx...";
 const char* AIO_TOPIC_SICAKLIK = "kullanici_adiniz/feeds/sicaklik";
 const char* AIO_TOPIC_NEM      = "kullanici_adiniz/feeds/nem";
 const char* AIO_TOPIC_BASINC   = "kullanici_adiniz/feeds/basinc";
+
+// --- Vercel Dashboard API ---
+// Vercel'e deploy ettikten sonra URL'yi buraya yazin:
+const char* VERCEL_API_URL    = "https://projeniz.vercel.app/api/telemetry";

@@ -6,6 +6,7 @@
 #include <driver/i2s.h>
 
 #include <WiFi.h>
+#include <HTTPClient.h>
 #include <PubSubClient.h>
 #include <math.h>
 
@@ -29,6 +30,7 @@ const unsigned long Z_OLED      = 200;
 const unsigned long Z_TELEMETRI = 1000;
 const unsigned long Z_LOKAL_MQTT= 1000;
 const unsigned long Z_AIO       = 5000;
+const unsigned long Z_VERCEL    = 5000;
 const unsigned long Z_RECONNECT = 5000;
 const unsigned long Z_LOST_EKRAN= 3000;
 const unsigned long Z_IP_EKRAN  = 3000;
@@ -48,6 +50,7 @@ unsigned long tSon_oled      = 0;
 unsigned long tSon_telem     = 0;
 unsigned long tSon_lokalMqtt = 0;
 unsigned long tSon_aio       = 0;
+unsigned long tSon_vercel    = 0;
 unsigned long tSon_reconnect = 0;
 unsigned long tSon_aioReconnect = 0;
 unsigned long tSon_lostEkran = 0;
@@ -375,6 +378,24 @@ void aioGonder() {
     aioMQTT.publish(AIO_TOPIC_BASINC, String(basinc, 0).c_str());
 }
 
+// --- Vercel API Gonder (5 sn) ---
+void vercelGonder() {
+    HTTPClient http;
+    http.begin(VERCEL_API_URL);
+    http.addHeader("Content-Type", "application/json");
+    char json[256];
+    snprintf(json, sizeof(json),
+             "{\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u}",
+             sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam);
+    int code = http.POST(json);
+    if (code >= 200 && code < 300) {
+        Serial.printf("[VERCEL] Veri gonderildi: %d\n", code);
+    } else {
+        Serial.printf("[VERCEL] Hata: %d\n", code);
+    }
+    http.end();
+}
+
 // ===================================================================
 void setup() {
     Serial.begin(115200);
@@ -478,6 +499,14 @@ void loop() {
         tSon_aio = now;
         if (normalMod && aioBagli) {
             aioGonder();
+        }
+    }
+
+    // --- Vercel API Gonderim (5 sn) ---
+    if (now - tSon_vercel >= Z_VERCEL) {
+        tSon_vercel = now;
+        if (normalMod && WiFi.status() == WL_CONNECTED) {
+            vercelGonder();
         }
     }
 
