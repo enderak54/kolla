@@ -29,7 +29,7 @@
 const unsigned long Z_OLED      = 200;
 const unsigned long Z_TELEMETRI = 1000;
 const unsigned long Z_LOKAL_MQTT= 1000;
-const unsigned long Z_AIO       = 5000;
+const unsigned long Z_AIO       = 30000;
 const unsigned long Z_VERCEL    = 5000;
 const unsigned long Z_RECONNECT = 5000;
 const unsigned long Z_LOST_EKRAN= 3000;
