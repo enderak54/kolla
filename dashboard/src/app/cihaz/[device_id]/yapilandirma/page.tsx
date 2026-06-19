@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from 'react'
 
+interface SensorInstance {
+  id: string
+  tip: string
+  etiket: string
+  aktif: boolean
+}
+
 interface CihazConfig {
   device_id: string
   ad: string
   firmware_version: string
-  sensor_config: Record<string, boolean>
+  sensor_config: SensorInstance[]
   gonderim_araligi: number
   ota_mode: string
   wifi_ssid: string
@@ -15,15 +22,18 @@ interface CihazConfig {
   son_guncelleme: string
 }
 
-const sensorOptions = [
-  { key: 'bme280', label: 'BME280 (Sıcaklık/Nem/Basınç)' },
-  { key: 'inmp441', label: 'INMP441 (Ses/Mikrofon)' },
-  { key: 'mq2', label: 'MQ-2 (Gaz Sensörü)' },
-  { key: 'dht22', label: 'DHT22 (Sıcaklık/Nem)' },
-  { key: 'ds18b20', label: 'DS18B20 (Harici Sıcaklık)' },
-  { key: 'max30102', label: 'MAX30102 (Nabız/Oksimetre)' },
-  { key: 'adxl345', label: 'ADXL345 (İvmeölçer)' },
+const sensorTipleri = [
+  { tip: 'bme280', label: 'BME280 (Sıcaklık/Nem/Basınç)' },
+  { tip: 'inmp441', label: 'INMP441 (Ses/Mikrofon)' },
+  { tip: 'mq2', label: 'MQ-2 (Gaz Sensörü)' },
+  { tip: 'dht22', label: 'DHT22 (Sıcaklık/Nem)' },
+  { tip: 'ds18b20', label: 'DS18B20 (Harici Sıcaklık)' },
+  { tip: 'max30102', label: 'MAX30102 (Nabız/Oksimetre)' },
+  { tip: 'adxl345', label: 'ADXL345 (İvmeölçer)' },
 ]
+
+let sensorIdCounter = Date.now()
+function yeniSensorId() { return `sens_${sensorIdCounter++}` }
 
 export default function CihazYapilandirma({ params }: { params: { device_id: string } }) {
   const deviceId = decodeURIComponent(params.device_id)
@@ -37,7 +47,7 @@ export default function CihazYapilandirma({ params }: { params: { device_id: str
   const [wifiSsid, setWifiSsid] = useState('')
   const [wifiPass, setWifiPass] = useState('')
   const [oledDir, setOledDir] = useState(0)
-  const [sensors, setSensors] = useState<Record<string, boolean>>({})
+  const [sensors, setSensors] = useState<SensorInstance[]>([])
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -52,15 +62,37 @@ export default function CihazYapilandirma({ params }: { params: { device_id: str
         setWifiSsid(data.wifi_ssid || '')
         setWifiPass(data.wifi_password || '')
         setOledDir(data.oled_direction || 0)
-        setSensors(data.sensor_config || {})
+        if (Array.isArray(data.sensor_config)) {
+          setSensors(data.sensor_config)
+        } else if (data.sensor_config && typeof data.sensor_config === 'object') {
+          setSensors(Object.entries(data.sensor_config).map(([k, v]) => ({
+            id: k,
+            tip: k.split('_')[0],
+            etiket: k,
+            aktif: Boolean(v),
+          })))
+        }
       } catch { setMesaj('Baglanti hatasi') }
       finally { setLoading(false) }
     }
     fetchConfig()
   }, [deviceId])
 
-  const toggleSensor = (key: string) => {
-    setSensors(prev => ({ ...prev, [key]: !prev[key] }))
+  const sensorEkle = (tip: string) => {
+    const t = sensorTipleri.find(s => s.tip === tip)
+    setSensors(prev => [...prev, { id: yeniSensorId(), tip, etiket: t?.label || tip, aktif: true }])
+  }
+
+  const sensorSil = (id: string) => {
+    setSensors(prev => prev.filter(s => s.id !== id))
+  }
+
+  const sensorToggle = (id: string) => {
+    setSensors(prev => prev.map(s => s.id === id ? { ...s, aktif: !s.aktif } : s))
+  }
+
+  const sensorEtiketDegistir = (id: string, etiket: string) => {
+    setSensors(prev => prev.map(s => s.id === id ? { ...s, etiket } : s))
   }
 
   const kaydet = async () => {
@@ -133,16 +165,38 @@ export default function CihazYapilandirma({ params }: { params: { device_id: str
             </div>
 
             <div className="bg-gray-800 rounded-2xl p-5 border border-gray-700">
-              <h2 className="text-lg font-semibold mb-4">Aktif Sensörler</h2>
-              <div className="space-y-2">
-                {sensorOptions.map(s => (
-                  <label key={s.key} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-700/50 cursor-pointer">
-                    <input type="checkbox" checked={!!sensors[s.key]} onChange={() => toggleSensor(s.key)}
-                      className="accent-emerald-500 w-4 h-4" />
-                    <span className="text-sm text-gray-300">{s.label}</span>
-                  </label>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Sensörler</h2>
+                <div className="flex gap-1">
+                  {sensorTipleri.map(t => (
+                    <button key={t.tip} onClick={() => sensorEkle(t.tip)}
+                      className="bg-emerald-800 hover:bg-emerald-700 text-white text-[10px] px-2 py-1 rounded">
+                      +{t.tip}
+                    </button>
+                  ))}
+                </div>
               </div>
+              {sensors.length === 0 ? (
+                <p className="text-gray-500 text-sm">Henüz sensör eklenmemiş. Yukarıdan sensör tipi seçerek ekleyin.</p>
+              ) : (
+                <div className="space-y-2">
+                  {sensors.map(s => (
+                    <div key={s.id} className="flex items-center gap-3 bg-gray-700/50 rounded-xl px-4 py-3">
+                      <button onClick={() => sensorToggle(s.id)}
+                        className={`w-10 h-6 rounded-full relative transition-colors ${s.aktif ? 'bg-emerald-600' : 'bg-gray-600'}`}>
+                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${s.aktif ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-[10px] text-gray-500 uppercase">{s.tip}</span>
+                        <input value={s.etiket} onChange={e => sensorEtiketDegistir(s.id, e.target.value)}
+                          className="w-full bg-transparent text-sm text-white border-b border-gray-600 focus:border-emerald-500 outline-none" />
+                      </div>
+                      <button onClick={() => sensorSil(s.id)}
+                        className="text-red-400 hover:text-red-300 text-xs px-2 py-1">Sil</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-800 rounded-2xl p-5 border border-gray-700">
@@ -156,7 +210,7 @@ export default function CihazYapilandirma({ params }: { params: { device_id: str
                     <option value="ble">BLE OTA</option>
                     <option value="kablo">Kablo (USB)</option>
                   </select>
-                  <p className="text-[10px] text-gray-500 mt-1">WiFi OTA: ESP32 panel üzerinden güncellenir. BLE OTA: Telefon ile güncellenir.</p>
+                  <p className="text-[10px] text-gray-500 mt-1">WiFi OTA: Panel üzerinden. BLE OTA: Telefon ile.</p>
                 </div>
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Wi-Fi SSID (yedek)</label>
