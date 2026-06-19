@@ -1,4 +1,4 @@
-const SUPABASE_URL = 'https://wnbrltpughawrvdmeqhk.supabase.co'
+const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
 
 async function query(method: string, path: string, body?: any) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
