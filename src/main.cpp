@@ -383,10 +383,11 @@ void vercelGonder() {
     HTTPClient http;
     http.begin(VERCEL_API_URL);
     http.addHeader("Content-Type", "application/json");
-    char json[256];
+    char json[320];
     snprintf(json, sizeof(json),
-             "{\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u}",
-             sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam);
+             "{\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d}",
+             sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam,
+             WiFi.RSSI(), lokalMQTT.connected() ? 1 : 0, aioMQTT.connected() ? 1 : 0);
     int code = http.POST(json);
     if (code >= 200 && code < 300) {
         Serial.printf("[VERCEL] Veri gonderildi: %d\n", code);

@@ -7,6 +7,9 @@ interface TelemetryData {
   ses: number
   cpu: number
   ram: number
+  wifiRssi?: number
+  mqttLokal?: number
+  mqttAio?: number
   timestamp: number
 }
 
