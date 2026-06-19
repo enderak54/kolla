@@ -13,19 +13,26 @@ export default function CihazDetay({ params }: { params: { device_id: string } }
   const [timeRange, setTimeRange] = useState(3600)
   const [refreshMs, setRefreshMs] = useState(5000)
   const [error, setError] = useState('')
+  const [cihazAdi, setCihazAdi] = useState('')
+  const [aktifSensörler, setAktifSensörler] = useState(0)
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [tr, tr2, tr3] = await Promise.all([
+        const [tr, tr2, tr3, ccfg] = await Promise.all([
           fetch(`/api/telemetry?device_id=${encodeURIComponent(deviceId)}`).then(r => r.json()),
           fetch('/api/thresholds').then(r => r.json()),
           fetch('/api/ayarlar').then(r => r.json()),
+          fetch(`/api/cihaz-yapilandirma?device_id=${encodeURIComponent(deviceId)}`).then(r => r.json().catch(() => ({}))),
         ])
         if (tr.latest) setData(tr.latest)
         if (tr.history) setHistory(tr.history)
         if (Array.isArray(tr2)) setThresholds(tr2)
         if (Array.isArray(tr3)) setAyarlar(tr3)
+        if (ccfg.ad) setCihazAdi(ccfg.ad)
+        if (Array.isArray(ccfg.sensor_config)) {
+          setAktifSensörler(ccfg.sensor_config.filter((s: any) => s.aktif).length)
+        }
       } catch { setError('Veri alinamadi') }
     }
     fetchAll()
@@ -52,8 +59,9 @@ export default function CihazDetay({ params }: { params: { device_id: string } }
       <div className="w-full max-w-4xl mb-4">
         <a href="/" className="text-emerald-400 hover:text-emerald-300 text-sm">&larr; Cihaz Listesi</a>
       </div>
-      <h1 className="text-3xl font-bold mb-2 text-emerald-400">Kolla Medikal Takip</h1>
-      <p className="text-sm text-gray-500 mb-6">{deviceId}</p>
+      <h1 className="text-3xl font-bold mb-1 text-emerald-400">Kolla Medikal Takip</h1>
+      <p className="text-lg font-medium text-gray-300">{cihazAdi || deviceId}</p>
+      <p className="text-xs text-gray-500 mb-6">{deviceId}{aktifSensörler > 0 && ` · ${aktifSensörler} sensör aktif`}</p>
       {error && <p className="text-red-400 mb-4">{error}</p>}
       <div className="w-full max-w-4xl flex flex-wrap gap-3 justify-center mb-6">
         <StatusBadge label="ESP32" active={!!aktif} />
