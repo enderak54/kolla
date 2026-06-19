@@ -51,12 +51,12 @@ export default function Home() {
       {data ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-2xl">
-            <Card label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} />
-            <Card label="Nem" value={`${data.nem.toFixed(0)}%`} />
-            <Card label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} />
-            <Card label="Ses" value={data.ses.toFixed(3)} />
-            <Card label="CPU Sıcaklık" value={`${data.cpu.toFixed(1)}°C`} />
-            <Card label="Boş RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} />
+            <Card label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" />
+            <Card label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" />
+            <Card label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" />
+            <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
+            <Card label="CPU Sıcaklık" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
+            <Card label="Boş RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} color="purple" />
           </div>
           <p className="text-xs text-gray-500 mt-4">
             Son güncelleme: {new Date(data.timestamp).toLocaleTimeString('tr-TR')}
@@ -78,13 +78,22 @@ function StatusBadge({ label, active, detail }: { label: string; active: boolean
     </div>
   )
 }
+
+const cardColors: Record<string, { border: string; bg: string; text: string }> = {
+  red:    { border: 'border-red-600',       bg: 'bg-red-950/30',    text: 'text-red-300' },
+  blue:   { border: 'border-sky-500',        bg: 'bg-sky-950/30',    text: 'text-sky-300' },
+  green:  { border: 'border-emerald-500',    bg: 'bg-emerald-950/30',text: 'text-emerald-300' },
+  yellow: { border: 'border-yellow-500',     bg: 'bg-yellow-950/30', text: 'text-yellow-300' },
+  orange: { border: 'border-orange-500',     bg: 'bg-orange-950/30', text: 'text-orange-300' },
+  purple: { border: 'border-purple-500',     bg: 'bg-purple-950/30', text: 'text-purple-300' },
 }
 
-function Card({ label, value }: { label: string; value: string }) {
+function Card({ label, value, color }: { label: string; value: string; color?: string }) {
+  const c = cardColors[color ?? 'green'] ?? cardColors.green
   return (
-    <div className="bg-gray-800 rounded-2xl p-5 flex flex-col items-center shadow-lg border border-gray-700">
+    <div className={`rounded-2xl p-5 flex flex-col items-center shadow-lg border ${c.border} ${c.bg}`}>
       <span className="text-sm text-gray-400 mb-1">{label}</span>
-      <span className="text-2xl font-semibold text-emerald-300">{value}</span>
+      <span className={`text-2xl font-semibold ${c.text}`}>{value}</span>
     </div>
   )
 }
