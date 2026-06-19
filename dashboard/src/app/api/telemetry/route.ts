@@ -19,6 +19,7 @@ async function query(method: string, path: string, body?: any) {
 }
 
 interface TelemetryData {
+  device_id?: string
   sicaklik: number
   nem: number
   basinc: number
@@ -52,8 +53,10 @@ export async function POST(request: Request) {
 
     body.timestamp = Date.now()
 
+    const deviceId = body.device_id || 'BILINMEYEN'
+
     await query('POST', 'telemetry', {
-      device_id: 'KOLLA-001',
+      device_id: deviceId,
       sicaklik: body.sicaklik,
       nem: body.nem,
       basinc: body.basinc,
@@ -72,9 +75,11 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const history: any[] = await query('GET', 'telemetry?select=*&device_id=eq.KOLLA-001&order=recorded_at.desc&limit=100')
+    const url = new URL(request.url)
+    const deviceId = url.searchParams.get('device_id') || 'KOLLA-%' // all if none specified
+    const history: any[] = await query('GET', `telemetry?select=*&device_id=like.${deviceId}&order=recorded_at.desc&limit=100`)
 
     const mapRow = (r: any) => ({
       sicaklik: r.sicaklik,

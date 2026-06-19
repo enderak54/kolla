@@ -364,9 +364,9 @@ void sensorOku() {
 // --- Lokal MQTT Gonder (1 sn) ---
 void lokalMQTTGonder() {
     if (!lokalMQTT.connected()) return;
-    char payload[128];
-    snprintf(payload, sizeof(payload), "%.1f,%.1f,%.1f,%.2f,%.1f,%u",
-             sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam);
+    char payload[160];
+    snprintf(payload, sizeof(payload), "%s,%.1f,%.1f,%.1f,%.2f,%.1f,%u",
+             cihazID, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam);
     lokalMQTT.publish(LOKAL_TOPIC_TELEM, payload);
 }
 
@@ -383,10 +383,10 @@ void vercelGonder() {
     HTTPClient http;
     http.begin(VERCEL_API_URL);
     http.addHeader("Content-Type", "application/json");
-    char json[320];
+    char json[400];
     snprintf(json, sizeof(json),
-             "{\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d}",
-             sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam,
+             "{\"device_id\":\"%s\",\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d}",
+             cihazID, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam,
              WiFi.RSSI(), lokalMQTT.connected() ? 1 : 0, aioMQTT.connected() ? 1 : 0);
     int code = http.POST(json);
     if (code >= 200 && code < 300) {
@@ -397,6 +397,8 @@ void vercelGonder() {
     http.end();
 }
 
+char cihazID[20];
+
 // ===================================================================
 void setup() {
     Serial.begin(115200);
@@ -404,6 +406,11 @@ void setup() {
     Serial.println("\n========================================");
     Serial.println("[SISTEM] ESP32-C3 Medikal Takip Basliyor");
     Serial.println("========================================");
+
+    uint8_t mac[6];
+    WiFi.macAddress(mac);
+    snprintf(cihazID, sizeof(cihazID), "KOLLA-%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    Serial.printf("[SISTEM] Cihaz ID: %s\n", cihazID);
 
     pinMode(MQ2_PIN, INPUT);
     pinMode(RELAY_PIN, OUTPUT);

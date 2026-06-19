@@ -195,12 +195,27 @@ function ThresholdCard({ threshold, onUpdate }: { threshold: Threshold; onUpdate
   )
 }
 
+const secenekler: Record<string, string[]> = {
+  ulkeler: ['Türkiye', 'Almanya', 'ABD', 'İngiltere', 'Fransa', 'Japonya', 'Çin', 'Rusya'],
+  bolge: ['İç Anadolu', 'Marmara', 'Ege', 'Akdeniz', 'Karadeniz', 'Doğu Anadolu', 'Güneydoğu Anadolu'],
+  sehir: ['Ankara', 'İstanbul', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Samsun', 'Trabzon', 'Diyarbakır'],
+  semt: ['Çankaya', 'Kızılay', 'Keçiören', 'Yenimahalle', 'Mamak', 'Sincan', 'Etimesgut', 'Altındağ', 'Gölbaşı', 'Pursaklar'],
+}
+
 function AyarSatir({ ayar, onUpdate }: { ayar: Ayar; onUpdate: (k: string, v: string) => void }) {
+  const opts = secenekler[ayar.anahtar]
   return (
     <div className="flex items-center justify-between gap-2">
       <span className="text-xs text-gray-400 flex-1">{ayar.aciklama || ayar.anahtar}</span>
-      <input value={ayar.deger} onChange={e => onUpdate(ayar.anahtar, e.target.value)}
-        className="w-24 bg-gray-700 rounded px-2 py-1 text-xs text-white text-right border border-gray-600" />
+      {opts ? (
+        <select value={ayar.deger} onChange={e => onUpdate(ayar.anahtar, e.target.value)}
+          className="w-28 bg-gray-700 rounded px-2 py-1 text-xs text-white text-right border border-gray-600">
+          {opts.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      ) : (
+        <input value={ayar.deger} onChange={e => onUpdate(ayar.anahtar, e.target.value)}
+          className="w-24 bg-gray-700 rounded px-2 py-1 text-xs text-white text-right border border-gray-600" />
+      )}
     </div>
   )
 }
