@@ -78,8 +78,9 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
-    const deviceId = url.searchParams.get('device_id') || 'KOLLA-%' // all if none specified
-    const history: any[] = await query('GET', `telemetry?select=*&device_id=like.${deviceId}&order=recorded_at.desc&limit=100`)
+    const deviceId = url.searchParams.get('device_id') || ''
+    const filter = deviceId ? `&device_id=eq.${deviceId}` : ''
+    const history: any[] = await query('GET', `telemetry?select=*${filter}&order=recorded_at.desc&limit=100`)
 
     const mapRow = (r: any) => ({
       sicaklik: r.sicaklik,
