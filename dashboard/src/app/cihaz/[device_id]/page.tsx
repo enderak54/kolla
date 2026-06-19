@@ -127,8 +127,18 @@ export default function CihazDetay({ params }: { params: { device_id: string } }
             </div>
           ))}
         </div>
+      <div className="w-full max-w-4xl mt-8 flex gap-4 justify-center">
+        <a href={`/cihaz/${encodeURIComponent(deviceId)}/yapilandirma`}
+          className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl px-5 py-3 text-sm text-gray-300 transition-colors">
+          ⚙ Cihaz Yapılandırma
+        </a>
+        <a href="/firmware"
+          className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl px-5 py-3 text-sm text-gray-300 transition-colors">
+          📦 Firmware Yönetimi
+        </a>
+      </div>
       {data && (
-        <p className="text-xs text-gray-500">Son: {new Date(data.timestamp).toLocaleTimeString('tr-TR')}</p>
+        <p className="text-xs text-gray-500 mt-4">Son: {new Date(data.timestamp).toLocaleTimeString('tr-TR')}</p>
       )}
     </div>
   )
