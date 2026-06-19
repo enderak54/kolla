@@ -17,6 +17,7 @@ export default function Home() {
   const [thresholds, setThresholds] = useState<Threshold[]>([])
   const [ayarlar, setAyarlar] = useState<Ayar[]>([])
   const [timeRange, setTimeRange] = useState(3600)
+  const [refreshMs, setRefreshMs] = useState(5000)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -34,9 +35,9 @@ export default function Home() {
       } catch { setError('Veri alinamadi') }
     }
     fetchAll()
-    const interval = setInterval(fetchAll, 5000)
+    const interval = setInterval(fetchAll, refreshMs)
     return () => clearInterval(interval)
-  }, [])
+  }, [refreshMs])
 
   const aktif = data && (Date.now() - data.timestamp) < 15000
   const now = Date.now()
@@ -73,31 +74,37 @@ export default function Home() {
       )}
       {history.length > 0 && (
         <div className="w-full max-w-4xl mb-8">
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 mb-4 items-center">
             {[[3600,'1s'], [21600,'6s'], [86400,'24s']].map(([s, l]) => (
               <button key={s} onClick={() => setTimeRange(s as number)}
                 className={`px-4 py-1 rounded-full text-sm ${timeRange === s ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{l}</button>
             ))}
+            <span className="text-gray-600 mx-2">|</span>
+            <span className="text-xs text-gray-500">Yenile:</span>
+            {[2000, 5000, 10000].map(ms => (
+              <button key={ms} onClick={() => setRefreshMs(ms)}
+                className={`px-3 py-1 rounded-full text-xs ${refreshMs === ms ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{ms/1000}s</button>
+            ))}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <MiniChart data={filteredHistory} dataKey="sicaklik" color="#EF4444" name="Sıcaklık °C" />
-            <MiniChart data={filteredHistory} dataKey="nem" color="#0EA5E9" name="Nem %" />
-            <MiniChart data={filteredHistory} dataKey="basinc" color="#10B981" name="Basınç hPa" />
+            {[ 
+              { key: 'sicaklik', dataKey: 'sicaklik', color: '#EF4444', name: 'Sıcaklık °C' },
+              { key: 'nem', dataKey: 'nem', color: '#0EA5E9', name: 'Nem %' },
+              { key: 'basinc', dataKey: 'basinc', color: '#10B981', name: 'Basınç hPa' },
+            ].map(m => (
+              <div key={m.key}>
+                <MiniChart data={filteredHistory} dataKey={m.dataKey} color={m.color} name={m.name} />
+                {thresholds.filter(t => t.metric === m.key).map(t => (
+                  <ThresholdCard key={t.metric} threshold={t} onUpdate={(upd) => {
+                    fetch('/api/thresholds', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(upd) })
+                    setThresholds(prev => prev.map(p => p.metric === upd.metric ? { ...p, ...upd } : p))
+                  }} />
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       )}
-      <div className="w-full max-w-4xl mb-8">
-        <h2 className="text-xl font-semibold mb-4 text-emerald-400">Eşik Değerler</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {thresholds.map(t => (
-            <ThresholdCard key={t.metric} threshold={t} onUpdate={(upd) => {
-              fetch('/api/thresholds', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(upd) })
-              setThresholds(prev => prev.map(p => p.metric === upd.metric ? { ...p, ...upd } : p))
-            }} />
-          ))}
-        </div>
-      </div>
-      <div className="w-full max-w-4xl mb-8">
         <h2 className="text-xl font-semibold mb-4 text-emerald-400">Sistem Ayarları</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {['bolgesel', 'birimler', 'cihaz'].map(kat => (
@@ -114,7 +121,6 @@ export default function Home() {
             </div>
           ))}
         </div>
-      </div>
       {data && (
         <p className="text-xs text-gray-500">Son: {new Date(data.timestamp).toLocaleTimeString('tr-TR')}</p>
       )}
