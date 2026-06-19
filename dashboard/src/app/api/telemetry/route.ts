@@ -1,10 +1,21 @@
-import { createClient } from '@supabase/supabase-js'
+const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
 
-function getSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+async function query(method: string, path: string, body?: any) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
+    headers: {
+      'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=minimal' : 'return=representation',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`${res.status}: ${text}`)
+  }
+  return res.json()
 }
 
 interface TelemetryData {
@@ -41,7 +52,7 @@ export async function POST(request: Request) {
 
     body.timestamp = Date.now()
 
-    const { error } = await getSupabase().from('telemetry').insert({
+    await query('POST', 'telemetry', {
       device_id: 'KOLLA-001',
       sicaklik: body.sicaklik,
       nem: body.nem,
@@ -49,13 +60,12 @@ export async function POST(request: Request) {
       ses: body.ses,
       cpu: body.cpu,
       ram: body.ram,
-      wifi_rssi: body.wifiRssi,
+      wifi_rssi: body.wifiRssi ?? null,
       mqtt_lokal: body.mqttLokal === 1,
       mqtt_aio: body.mqttAio === 1,
       recorded_at: new Date(body.timestamp).toISOString(),
     })
 
-    if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -64,24 +74,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const sb = getSupabase()
-    const { data: latest, error: err1 } = await sb
-      .from('telemetry')
-      .select('*')
-      .eq('device_id', 'KOLLA-001')
-      .order('recorded_at', { ascending: false })
-      .limit(1)
-
-    const { data: history, error: err2 } = await sb
-      .from('telemetry')
-      .select('*')
-      .eq('device_id', 'KOLLA-001')
-      .order('recorded_at', { ascending: false })
-      .limit(100)
-
-    if (err1 || err2) {
-      return Response.json({ error: (err1 || err2)?.message }, { status: 500 })
-    }
+    const history: any[] = await query('GET', 'telemetry?select=*&device_id=eq.KOLLA-001&order=recorded_at.desc&limit=100')
 
     const mapRow = (r: any) => ({
       sicaklik: r.sicaklik,
@@ -97,8 +90,8 @@ export async function GET() {
     })
 
     return Response.json({
-      latest: latest?.[0] ? mapRow(latest[0]) : null,
-      history: (history || []).map(mapRow).reverse(),
+      latest: history[0] ? mapRow(history[0]) : null,
+      history: [...history].reverse().map(mapRow),
     })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
