@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts'
+import iller from '@/data/turkiye-il-ilce.json'
 
 interface TelemetryData {
   sicaklik: number; nem: number; basinc: number; ses: number; cpu: number; ram: number
@@ -44,6 +45,14 @@ export default function Home() {
   const filteredHistory = history.filter(d => (now - d.timestamp) < timeRange * 1000)
   const thresholdMap = Object.fromEntries(thresholds.map(t => [t.metric, t]))
   const alertSicaklik = thresholdMap.sicaklik?.enabled && data && (data.sicaklik < thresholdMap.sicaklik.min_val || data.sicaklik > thresholdMap.sicaklik.max_val)
+  const secilenSehir = ayarlar.find(a => a.anahtar === 'sehir')?.deger || ''
+  const ilceListesi = iller.iller.find(i => i.il === secilenSehir)?.ilceler ?? []
+  const secenekler: Record<string, string[]> = {
+    ulkeler: ['Türkiye', 'Almanya', 'ABD', 'İngiltere', 'Fransa', 'Japonya', 'Çin', 'Rusya'],
+    bolge: ['İç Anadolu', 'Marmara', 'Ege', 'Akdeniz', 'Karadeniz', 'Doğu Anadolu', 'Güneydoğu Anadolu'],
+    sehir: iller.iller.map(i => i.il),
+    semt: ilceListesi,
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-8 flex flex-col items-center">
@@ -112,7 +121,7 @@ export default function Home() {
               <h3 className="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wide">{kat === 'bolgesel' ? 'Bölgesel' : kat === 'birimler' ? 'Birimler' : 'Cihaz'}</h3>
               <div className="space-y-2">
                 {ayarlar.filter(a => a.kategori === kat).map(a => (
-                  <AyarSatir key={a.anahtar} ayar={a} onUpdate={(anahtar, deger) => {
+                  <AyarSatir key={a.anahtar} ayar={a} secenekler={secenekler} onUpdate={(anahtar, deger) => {
                     fetch('/api/ayarlar', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ anahtar, deger }) })
                     setAyarlar(prev => prev.map(p => p.anahtar === anahtar ? { ...p, deger } : p))
                   }} />
@@ -195,14 +204,7 @@ function ThresholdCard({ threshold, onUpdate }: { threshold: Threshold; onUpdate
   )
 }
 
-const secenekler: Record<string, string[]> = {
-  ulkeler: ['Türkiye', 'Almanya', 'ABD', 'İngiltere', 'Fransa', 'Japonya', 'Çin', 'Rusya'],
-  bolge: ['İç Anadolu', 'Marmara', 'Ege', 'Akdeniz', 'Karadeniz', 'Doğu Anadolu', 'Güneydoğu Anadolu'],
-  sehir: ['Ankara', 'İstanbul', 'İzmir', 'Bursa', 'Antalya', 'Adana', 'Konya', 'Samsun', 'Trabzon', 'Diyarbakır'],
-  semt: ['Çankaya', 'Kızılay', 'Keçiören', 'Yenimahalle', 'Mamak', 'Sincan', 'Etimesgut', 'Altındağ', 'Gölbaşı', 'Pursaklar'],
-}
-
-function AyarSatir({ ayar, onUpdate }: { ayar: Ayar; onUpdate: (k: string, v: string) => void }) {
+function AyarSatir({ ayar, secenekler, onUpdate }: { ayar: Ayar; secenekler: Record<string, string[]>; onUpdate: (k: string, v: string) => void }) {
   const opts = secenekler[ayar.anahtar]
   return (
     <div className="flex items-center justify-between gap-2">
