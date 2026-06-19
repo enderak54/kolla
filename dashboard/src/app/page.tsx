@@ -9,24 +9,28 @@ interface TelemetryData {
 }
 
 interface Threshold { metric: string; min_val: number; max_val: number; enabled: boolean }
+interface Ayar { anahtar: string; deger: string; kategori: string; aciklama: string }
 
 export default function Home() {
   const [data, setData] = useState<TelemetryData | null>(null)
   const [history, setHistory] = useState<TelemetryData[]>([])
   const [thresholds, setThresholds] = useState<Threshold[]>([])
+  const [ayarlar, setAyarlar] = useState<Ayar[]>([])
   const [timeRange, setTimeRange] = useState(3600)
   const [error, setError] = useState('')
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [tr, tr2] = await Promise.all([
+        const [tr, tr2, tr3] = await Promise.all([
           fetch('/api/telemetry').then(r => r.json()),
           fetch('/api/thresholds').then(r => r.json()),
+          fetch('/api/ayarlar').then(r => r.json()),
         ])
         if (tr.latest) setData(tr.latest)
         if (tr.history) setHistory(tr.history)
         if (Array.isArray(tr2)) setThresholds(tr2)
+        if (Array.isArray(tr3)) setAyarlar(tr3)
       } catch { setError('Veri alinamadi') }
     }
     fetchAll()
@@ -75,19 +79,10 @@ export default function Home() {
                 className={`px-4 py-1 rounded-full text-sm ${timeRange === s ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{l}</button>
             ))}
           </div>
-          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={filteredHistory.map(d => ({ ...d, time: new Date(d.timestamp).toLocaleTimeString('tr-TR') }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="time" tick={{ fill: '#9CA3AF', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#9CA3AF', fontSize: 10 }} />
-                <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: 8 }} />
-                <Legend />
-                <Line type="monotone" dataKey="sicaklik" stroke="#EF4444" name="Sıcaklık °C" dot={false} strokeWidth={2} />
-                <Line type="monotone" dataKey="nem" stroke="#0EA5E9" name="Nem %" dot={false} strokeWidth={2} />
-                <Line type="monotone" dataKey="basinc" stroke="#10B981" name="Basınç hPa" dot={false} strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <MiniChart data={filteredHistory} dataKey="sicaklik" color="#EF4444" name="Sıcaklık °C" />
+            <MiniChart data={filteredHistory} dataKey="nem" color="#0EA5E9" name="Nem %" />
+            <MiniChart data={filteredHistory} dataKey="basinc" color="#10B981" name="Basınç hPa" />
           </div>
         </div>
       )}
@@ -99,6 +94,24 @@ export default function Home() {
               fetch('/api/thresholds', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(upd) })
               setThresholds(prev => prev.map(p => p.metric === upd.metric ? { ...p, ...upd } : p))
             }} />
+          ))}
+        </div>
+      </div>
+      <div className="w-full max-w-4xl mb-8">
+        <h2 className="text-xl font-semibold mb-4 text-emerald-400">Sistem Ayarları</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {['bolgesel', 'birimler', 'cihaz'].map(kat => (
+            <div key={kat} className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+              <h3 className="text-sm font-medium text-gray-400 mb-3 uppercase tracking-wide">{kat === 'bolgesel' ? 'Bölgesel' : kat === 'birimler' ? 'Birimler' : 'Cihaz'}</h3>
+              <div className="space-y-2">
+                {ayarlar.filter(a => a.kategori === kat).map(a => (
+                  <AyarSatir key={a.anahtar} ayar={a} onUpdate={(anahtar, deger) => {
+                    fetch('/api/ayarlar', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ anahtar, deger }) })
+                    setAyarlar(prev => prev.map(p => p.anahtar === anahtar ? { ...p, deger } : p))
+                  }} />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -172,6 +185,33 @@ function ThresholdCard({ threshold, onUpdate }: { threshold: Threshold; onUpdate
           {saving ? 'Kaydedildi' : 'Kaydet'}
         </button>
       </div>
+    </div>
+  )
+}
+
+function AyarSatir({ ayar, onUpdate }: { ayar: Ayar; onUpdate: (k: string, v: string) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-xs text-gray-400 flex-1">{ayar.aciklama || ayar.anahtar}</span>
+      <input value={ayar.deger} onChange={e => onUpdate(ayar.anahtar, e.target.value)}
+        className="w-24 bg-gray-700 rounded px-2 py-1 text-xs text-white text-right border border-gray-600" />
+    </div>
+  )
+}
+
+function MiniChart({ data, dataKey, color, name }: { data: TelemetryData[]; dataKey: string; color: string; name: string }) {
+  return (
+    <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+      <h3 className="text-sm font-medium text-gray-400 mb-2">{name}</h3>
+      <ResponsiveContainer width="100%" height={180}>
+        <LineChart data={data.map(d => ({ ...d, time: new Date(d.timestamp).toLocaleTimeString('tr-TR') }))}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+          <XAxis dataKey="time" tick={{ fill: '#9CA3AF', fontSize: 9 }} />
+          <YAxis domain={['dataMin - 1', 'dataMax + 1']} tick={{ fill: '#9CA3AF', fontSize: 9 }} width={45} />
+          <Tooltip contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: 8, fontSize: 12 }} />
+          <Line type="monotone" dataKey={dataKey} stroke={color} name={name} dot={false} strokeWidth={2} />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   )
 }
