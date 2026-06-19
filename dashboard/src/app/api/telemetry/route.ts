@@ -1,4 +1,11 @@
-import { kv } from '@vercel/kv'
+import { createClient } from '@supabase/supabase-js'
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+}
 
 interface TelemetryData {
   sicaklik: number
@@ -34,10 +41,21 @@ export async function POST(request: Request) {
 
     body.timestamp = Date.now()
 
-    await kv.set('latest', body)
-    await kv.zadd('history', { score: body.timestamp, member: JSON.stringify(body) })
-    await kv.zremrangebyrank('history', 0, -101)
+    const { error } = await getSupabase().from('telemetry').insert({
+      device_id: 'KOLLA-001',
+      sicaklik: body.sicaklik,
+      nem: body.nem,
+      basinc: body.basinc,
+      ses: body.ses,
+      cpu: body.cpu,
+      ram: body.ram,
+      wifi_rssi: body.wifiRssi,
+      mqtt_lokal: body.mqttLokal === 1,
+      mqtt_aio: body.mqttAio === 1,
+      recorded_at: new Date(body.timestamp).toISOString(),
+    })
 
+    if (error) return Response.json({ error: error.message }, { status: 500 })
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -46,13 +64,42 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const latest = await kv.get<TelemetryData>('latest')
-    const history = await kv.zrange('history', 0, -1, { rev: true })
-    const data = history.map((m) => {
-      try { return JSON.parse(m as string) as TelemetryData } catch { return null }
-    }).filter(Boolean).reverse()
+    const sb = getSupabase()
+    const { data: latest, error: err1 } = await sb
+      .from('telemetry')
+      .select('*')
+      .eq('device_id', 'KOLLA-001')
+      .order('recorded_at', { ascending: false })
+      .limit(1)
 
-    return Response.json({ latest, history: data })
+    const { data: history, error: err2 } = await sb
+      .from('telemetry')
+      .select('*')
+      .eq('device_id', 'KOLLA-001')
+      .order('recorded_at', { ascending: false })
+      .limit(100)
+
+    if (err1 || err2) {
+      return Response.json({ error: (err1 || err2)?.message }, { status: 500 })
+    }
+
+    const mapRow = (r: any) => ({
+      sicaklik: r.sicaklik,
+      nem: r.nem,
+      basinc: r.basinc,
+      ses: r.ses,
+      cpu: r.cpu,
+      ram: r.ram,
+      wifiRssi: r.wifi_rssi,
+      mqttLokal: r.mqtt_lokal ? 1 : 0,
+      mqttAio: r.mqtt_aio ? 1 : 0,
+      timestamp: new Date(r.recorded_at).getTime(),
+    })
+
+    return Response.json({
+      latest: latest?.[0] ? mapRow(latest[0]) : null,
+      history: (history || []).map(mapRow).reverse(),
+    })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
   }
