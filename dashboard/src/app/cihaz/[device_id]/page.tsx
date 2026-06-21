@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import iller from '@/data/turkiye-il-ilce.json'
 import { TelemetryData, Threshold, Ayar, SensorCard, Card, ThresholdCard, MiniChart, StatusBadge, AyarSatir } from '@/app/components/shared'
 
-export default function CihazDetay({ params }: { params: { device_id: string } }) {
-  const deviceId = decodeURIComponent(params.device_id)
+export default function CihazDetay({ params }: { params: Promise<{ device_id: string }> }) {
+  const { device_id } = use(params)
+  const deviceId = decodeURIComponent(device_id)
   const [data, setData] = useState<TelemetryData | null>(null)
   const [history, setHistory] = useState<TelemetryData[]>([])
   const [thresholds, setThresholds] = useState<Threshold[]>([])

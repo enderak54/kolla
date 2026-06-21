@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 
 interface SensorInstance {
   id: string
@@ -35,8 +35,9 @@ const sensorTipleri = [
 let sensorIdCounter = Date.now()
 function yeniSensorId() { return `sens_${sensorIdCounter++}` }
 
-export default function CihazYapilandirma({ params }: { params: { device_id: string } }) {
-  const deviceId = decodeURIComponent(params.device_id)
+export default function CihazYapilandirma({ params }: { params: Promise<{ device_id: string }> }) {
+  const { device_id } = use(params)
+  const deviceId = decodeURIComponent(device_id)
   const [config, setConfig] = useState<CihazConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
