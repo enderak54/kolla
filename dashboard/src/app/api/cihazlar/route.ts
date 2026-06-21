@@ -17,9 +17,9 @@ async function query(method: string, path: string) {
 
 export async function GET() {
   try {
-    const rows: any[] = await query('GET', 'telemetry?select=device_id,recorded_at,sicaklik,nem,wifi_rssi,mqtt_lokal,mqtt_aio&order=recorded_at.desc&limit=1000')
+    const rows: any[] = await query('GET', 'telemetry?select=device_id,mac,recorded_at,sicaklik,nem,wifi_rssi,mqtt_lokal,mqtt_aio&order=recorded_at.desc&limit=1000')
 
-    const deviceMap = new Map<string, { sonGuncelleme: number; sicaklik: number; nem: number; wifiRssi: number | null; mqttLokal: boolean; mqttAio: boolean; kayitSayisi: number }>()
+    const deviceMap = new Map<string, { sonGuncelleme: number; sicaklik: number; nem: number; wifiRssi: number | null; mqttLokal: boolean; mqttAio: boolean; kayitSayisi: number; mac: string | null }>()
 
     for (const r of rows) {
       const id = r.device_id || 'BILINMEYEN'
@@ -32,6 +32,7 @@ export async function GET() {
           mqttLokal: r.mqtt_lokal,
           mqttAio: r.mqtt_aio,
           kayitSayisi: 1,
+          mac: r.mac || null,
         })
       } else {
         const d = deviceMap.get(id)!
@@ -41,6 +42,7 @@ export async function GET() {
 
     const cihazlar = Array.from(deviceMap.entries()).map(([device_id, data]) => ({
       device_id,
+      mac: data.mac,
       ...data,
       aktif: (Date.now() - data.sonGuncelleme) < 15000,
     }))

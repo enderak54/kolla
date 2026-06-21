@@ -18,9 +18,11 @@ async function supabase(method: string, path: string, body?: any) {
   return res.json()
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const data = await supabase('GET', 'thresholds?select=*&device_id=eq.KOLLA-001')
+    const url = new URL(request.url)
+    const deviceId = url.searchParams.get('device_id') || 'KOLLA-000001'
+    const data = await supabase('GET', `thresholds?select=*&device_id=eq.${deviceId}`)
     return Response.json(data)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -29,8 +31,9 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { metric, min_val, max_val, enabled } = await request.json()
-    await supabase('PATCH', `thresholds?device_id=eq.KOLLA-001&metric=eq.${metric}`, {
+    const { metric, min_val, max_val, enabled, device_id } = await request.json()
+    const did = device_id || 'KOLLA-000001'
+    await supabase('PATCH', `thresholds?device_id=eq.${did}&metric=eq.${metric}`, {
       min_val, max_val, enabled, updated_at: new Date().toISOString(),
     })
     return Response.json({ ok: true })

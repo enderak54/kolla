@@ -20,6 +20,7 @@ async function query(method: string, path: string, body?: any) {
 
 interface TelemetryData {
   device_id?: string
+  mac?: string
   sicaklik: number
   nem: number
   basinc: number
@@ -53,9 +54,9 @@ export async function POST(request: Request) {
 
     body.timestamp = Date.now()
 
-    const deviceId = body.device_id || 'BILINMEYEN'
+    const deviceId = body.device_id || 'KOLLA-000001'
 
-    await query('POST', 'telemetry', {
+    const payload: Record<string, any> = {
       device_id: deviceId,
       sicaklik: body.sicaklik,
       nem: body.nem,
@@ -67,7 +68,10 @@ export async function POST(request: Request) {
       mqtt_lokal: body.mqttLokal === 1,
       mqtt_aio: body.mqttAio === 1,
       recorded_at: new Date(body.timestamp).toISOString(),
-    })
+    }
+    if (body.mac) payload.mac = body.mac
+
+    await query('POST', 'telemetry', payload)
 
     return Response.json({ ok: true })
   } catch (e) {
@@ -83,6 +87,8 @@ export async function GET(request: Request) {
     const history: any[] = await query('GET', `telemetry?select=*${filter}&order=recorded_at.desc&limit=100`)
 
     const mapRow = (r: any) => ({
+      device_id: r.device_id,
+      mac: r.mac,
       sicaklik: r.sicaklik,
       nem: r.nem,
       basinc: r.basinc,

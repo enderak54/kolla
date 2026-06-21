@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 export interface TelemetryData {
-  sicaklik: number; nem: number; basinc: number; ses: number; cpu: number; ram: number
+  device_id?: string; mac?: string; sicaklik: number; nem: number; basinc: number; ses: number; cpu: number; ram: number
   wifiRssi?: number; mqttLokal?: number; mqttAio?: number; timestamp: number
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 interface Cihaz {
   device_id: string
+  mac: string | null
   sonGuncelleme: number
   sicaklik: number
   nem: number
@@ -59,6 +60,7 @@ export default function CihazListesi() {
                 <div className="flex items-center gap-3">
                   <span className={`w-3 h-3 rounded-full ${c.aktif ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-red-400'}`} />
                   <span className="text-lg font-medium">{c.device_id}</span>
+                  {c.mac && <span className="text-[10px] text-gray-500 ml-2 font-mono">{c.mac}</span>}
                 </div>
                 <span className="text-xs text-gray-500">{c.kayitSayisi} kayıt</span>
               </div>

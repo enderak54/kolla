@@ -8,6 +8,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <PubSubClient.h>
+#include <Preferences.h>
 #include <math.h>
 
 // --- Pinler ---
@@ -385,8 +386,8 @@ void vercelGonder() {
     http.addHeader("Content-Type", "application/json");
     char json[400];
     snprintf(json, sizeof(json),
-             "{\"device_id\":\"%s\",\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d}",
-             cihazID, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam,
+             "{\"device_id\":\"%s\",\"mac\":\"%s\",\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d}",
+             cihazID, cihazMAC, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam,
              WiFi.RSSI(), lokalMQTT.connected() ? 1 : 0, aioMQTT.connected() ? 1 : 0);
     int code = http.POST(json);
     if (code >= 200 && code < 300) {
@@ -397,7 +398,8 @@ void vercelGonder() {
     http.end();
 }
 
-char cihazID[20];
+char cihazID[24];
+char cihazMAC[18];
 
 // ===================================================================
 void setup() {
@@ -407,10 +409,28 @@ void setup() {
     Serial.println("[SISTEM] ESP32-C3 Medikal Takip Basliyor");
     Serial.println("========================================");
 
+    Preferences prefs;
+    prefs.begin("kolla", false);
+    if (prefs.isKey("device_id")) {
+        String stored = prefs.getString("device_id");
+        snprintf(cihazID, sizeof(cihazID), "%s", stored.c_str());
+        Serial.printf("[SISTEM] Mevcut Cihaz ID: %s\n", cihazID);
+    } else {
+        uint8_t buf[8];
+        for (int i = 0; i < 8; i++) buf[i] = esp_random() & 0xFF;
+        char newId[17];
+        snprintf(newId, sizeof(newId), "KOLLA-%02X%02X%02X%02X%02X%02X%02X%02X",
+                 buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+        prefs.putString("device_id", newId);
+        snprintf(cihazID, sizeof(cihazID), "%s", newId);
+        Serial.printf("[SISTEM] Yeni Cihaz ID: %s\n", cihazID);
+    }
+    prefs.end();
+
     uint8_t mac[6];
     WiFi.macAddress(mac);
-    snprintf(cihazID, sizeof(cihazID), "KOLLA-%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    Serial.printf("[SISTEM] Cihaz ID: %s\n", cihazID);
+    snprintf(cihazMAC, sizeof(cihazMAC), "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    Serial.printf("[SISTEM] MAC: %s\n", cihazMAC);
 
     pinMode(MQ2_PIN, INPUT);
     pinMode(RELAY_PIN, OUTPUT);

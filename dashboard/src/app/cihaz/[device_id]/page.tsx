@@ -61,7 +61,7 @@ export default function CihazDetay({ params }: { params: { device_id: string } }
       </div>
       <h1 className="text-3xl font-bold mb-1 text-emerald-400">Kolla Medikal Takip</h1>
       <p className="text-lg font-medium text-gray-300">{cihazAdi || deviceId}</p>
-      <p className="text-xs text-gray-500 mb-6">{deviceId}{aktifSensörler > 0 && ` · ${aktifSensörler} sensör aktif`}</p>
+      <p className="text-xs text-gray-500 mb-6">{deviceId}{data?.mac && ` · ${data.mac}`}{aktifSensörler > 0 && ` · ${aktifSensörler} sensör aktif`}</p>
       {error && <p className="text-red-400 mb-4">{error}</p>}
       <div className="w-full max-w-4xl flex flex-wrap gap-3 justify-center mb-6">
         <StatusBadge label="ESP32" active={!!aktif} />
