@@ -17,7 +17,7 @@ async function query(method: string, path: string) {
 
 export async function GET() {
   try {
-    const rows: any[] = await query('GET', 'telemetry?select=device_id,mac,recorded_at,sicaklik,nem,wifi_rssi,mqtt_lokal,mqtt_aio&order=recorded_at.desc&limit=1000')
+    const rows: any[] = await query('GET', 'telemetry?select=*&order=recorded_at.desc&limit=1000')
 
     const deviceMap = new Map<string, { sonGuncelleme: number; sicaklik: number; nem: number; wifiRssi: number | null; mqttLokal: boolean; mqttAio: boolean; kayitSayisi: number; mac: string | null }>()
 
