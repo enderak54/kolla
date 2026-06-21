@@ -79,6 +79,27 @@ export async function POST(request: Request) {
   }
 }
 
+export async function DELETE() {
+  let deleted = 0
+  while (true) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/telemetry?device_id=eq.BILINMEYEN&limit=1000`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+        'Prefer': 'return=minimal',
+      },
+    })
+    if (!res.ok) return Response.json({ error: await res.text() }, { status: 500 })
+    const range = res.headers.get('content-range') || ''
+    const match = range.match(/\/(\d+)/)
+    const count = match ? parseInt(match[1]) : 0
+    if (count === 0) break
+    deleted += count
+  }
+  return Response.json({ deleted })
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
