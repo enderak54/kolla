@@ -120,6 +120,7 @@ export default function CihazYonetimi({ params }: { params: Promise<{}> }) {
                 <div key={c.device_id} className="flex items-center justify-between bg-gray-800/50 rounded-xl px-4 py-3 border border-amber-800/30">
                   <div>
                     <span className="font-medium">{c.device_id}</span>
+                    {c.mac && <span className="text-[10px] text-gray-500 ml-2 font-mono">{c.mac}</span>}
                     <span className="text-xs text-gray-500 ml-2">{c.kayitSayisi} kayit</span>
                     {c.aktif && <span className="text-[10px] text-emerald-400 ml-2">AKTIF</span>}
                   </div>
@@ -150,7 +151,7 @@ export default function CihazYonetimi({ params }: { params: Promise<{}> }) {
                         {c.ad || c.device_id}
                       </a>
                       <div className="text-xs text-gray-500">
-                        {c.device_id}{c.konum && ` · ${c.konum}`}{c.esikVar && ' · Esikli'}
+                        {c.device_id}{c.mac && ` · ${c.mac}`}{c.konum && ` · ${c.konum}`}{c.esikVar && ' · Esikli'}
                       </div>
                     </div>
                   </div>
