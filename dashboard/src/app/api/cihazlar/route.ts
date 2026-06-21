@@ -42,7 +42,6 @@ export async function GET() {
 
     const cihazlar = Array.from(deviceMap.entries()).map(([device_id, data]) => ({
       device_id,
-      mac: data.mac,
       ...data,
       aktif: (Date.now() - data.sonGuncelleme) < 15000,
     }))
