@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Sidebar from "@/app/components/Sidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Medikal Takip",
+  title: "Kolla Medikal Takip",
   description: "ESP32-C3 Medikal Takip Sistemi",
 };
 
@@ -24,10 +25,15 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex">
+        <Sidebar />
+        <main className="flex-1 bg-gray-900 text-white p-4 sm:p-8 overflow-auto">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }

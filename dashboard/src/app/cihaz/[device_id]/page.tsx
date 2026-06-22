@@ -56,11 +56,11 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-8 flex flex-col items-center">
-      <div className="w-full max-w-4xl mb-4">
+    <div className="flex flex-col items-center max-w-5xl mx-auto">
+      <div className="w-full mb-4">
         <a href="/" className="text-emerald-400 hover:text-emerald-300 text-sm">&larr; Cihaz Listesi</a>
       </div>
-      <h1 className="text-3xl font-bold mb-1 text-emerald-400">Kolla Medikal Takip</h1>
+      <h1 className="text-2xl font-bold mb-1 text-emerald-400">Kolla Medikal Takip</h1>
       <p className="text-lg font-medium text-gray-300">{cihazAdi || deviceId}</p>
       <p className="text-xs text-gray-500 mb-6">{deviceId}{data?.mac && ` · ${data.mac}`}{aktifSensörler > 0 && ` · ${aktifSensörler} sensör aktif`}</p>
       {error && <p className="text-red-400 mb-4">{error}</p>}

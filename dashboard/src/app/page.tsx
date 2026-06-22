@@ -39,14 +39,9 @@ export default function CihazListesi() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-8 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-2 text-emerald-400">Kolla Medikal Takip</h1>
-      <div className="flex items-center justify-center gap-4 mb-6">
-        <p className="text-sm text-gray-500">Bağlı Cihazlar</p>
-        <a href="/cihaz-yonetimi" className="text-xs bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-full px-4 py-1 text-gray-400 transition-colors">
-          ⚙ Yönet
-        </a>
-      </div>
+    <div className="flex flex-col items-center">
+      <h1 className="text-2xl font-bold mb-2 text-emerald-400">Kolla Medikal Takip</h1>
+      <p className="text-sm text-gray-500 mb-6">Bağlı Cihazlar</p>
       {error && <p className="text-red-400 mb-4">{error}</p>}
       {loading ? (
         <p className="text-gray-400">Yükleniyor...</p>

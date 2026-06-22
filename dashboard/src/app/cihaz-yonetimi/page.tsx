@@ -70,8 +70,7 @@ export default function CihazYonetimi({ params }: { params: Promise<{}> }) {
   const kesfedilen = cihazlar.filter(c => !c.kayitli && c.device_id !== 'BILINMEYEN')
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto">
         <a href="/" className="text-emerald-400 hover:text-emerald-300 text-sm">&larr; Cihaz Listesi</a>
         <h1 className="text-3xl font-bold mt-2 mb-6 text-emerald-400">Cihaz Yönetimi</h1>
 
@@ -172,6 +171,5 @@ export default function CihazYonetimi({ params }: { params: Promise<{}> }) {
           Silme islemi: thresholds + telemetry + devices tablosundan kayitlari siler.
         </p>
       </div>
-    </div>
   )
 }
