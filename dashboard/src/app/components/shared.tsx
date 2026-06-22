@@ -129,3 +129,88 @@ export function StatusBadge({ label, active, detail }: { label: string; active: 
     </div>
   )
 }
+
+export function SinyalGosterge({ rssi }: { rssi: number | undefined }) {
+  if (rssi === undefined) return <span className="text-xs text-gray-500">--</span>
+  const seviye = rssi >= -50 ? 4 : rssi >= -65 ? 3 : rssi >= -80 ? 2 : 1
+  const renk = seviye >= 3 ? 'bg-emerald-400' : seviye === 2 ? 'bg-yellow-400' : 'bg-red-400'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-end gap-[2px] h-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className={`w-[3px] rounded-sm ${i <= seviye ? renk : 'bg-gray-600'}`}
+            style={{ height: `${i * 4}px` }} />
+        ))}
+      </div>
+      <span className="text-xs text-gray-400">{rssi} dBm</span>
+    </div>
+  )
+}
+
+export function OzetKarti({ data }: { data: TelemetryData[] }) {
+  if (data.length === 0) return null
+  const vals = data.map(d => d.sicaklik).filter((v): v is number => v !== undefined)
+  const min = Math.min(...vals); const max = Math.max(...vals); const ort = vals.reduce((a, b) => a + b, 0) / vals.length
+  const nemVals = data.map(d => d.nem).filter((v): v is number => v !== undefined)
+  const nemMin = Math.min(...nemVals); const nemMax = Math.max(...nemVals)
+  return (
+    <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+      <h3 className="text-sm font-medium text-gray-400 mb-3">Son 24s Özet</h3>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <div>
+          <span className="text-[10px] text-gray-500">Sıcaklık</span>
+          <p className="text-emerald-300 text-lg font-semibold">{ort.toFixed(1)}°C</p>
+          <p className="text-[10px] text-gray-600">{min.toFixed(1)} - {max.toFixed(1)}</p>
+        </div>
+        <div>
+          <span className="text-[10px] text-gray-500">Nem</span>
+          <p className="text-sky-300 text-lg font-semibold">{nemMin.toFixed(0)}-{nemMax.toFixed(0)}%</p>
+        </div>
+        <div>
+          <span className="text-[10px] text-gray-500">Veri</span>
+          <p className="text-gray-300 text-lg font-semibold">{data.length}</p>
+          <p className="text-[10px] text-gray-600">kayıt</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function AlarmPaneli({ alerts }: { alerts: string[] }) {
+  if (alerts.length === 0) return null
+  return (
+    <div className="w-full max-w-4xl space-y-2 mb-4">
+      {alerts.map((a, i) => (
+        <div key={i} className="bg-red-900/30 border border-red-600/50 rounded-xl px-4 py-3 text-red-300 text-sm flex items-center gap-3">
+          <span>⚠</span>
+          <span>{a}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function CSVExport({ data, filename }: { data: TelemetryData[]; filename: string }) {
+  const exportCSV = () => {
+    if (data.length === 0) return
+    const headers = ['Tarih', 'Saat', 'Sicaklik', 'Nem', 'Basinc', 'Ses', 'CPU', 'RAM', 'WiFi']
+    const rows = data.map(d => [
+      new Date(d.timestamp).toLocaleDateString('tr-TR'),
+      new Date(d.timestamp).toLocaleTimeString('tr-TR'),
+      d.sicaklik?.toFixed(1) ?? '', d.nem?.toFixed(0) ?? '', d.basinc?.toFixed(0) ?? '',
+      d.ses?.toFixed(3) ?? '', d.cpu?.toFixed(1) ?? '', d.ram?.toString() ?? '',
+      d.wifiRssi?.toString() ?? '',
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = filename
+    a.click(); URL.revokeObjectURL(url)
+  }
+  return (
+    <button onClick={exportCSV} disabled={data.length === 0}
+      className="bg-gray-700 hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-xs flex items-center gap-2">
+      <span>↓</span> CSV
+    </button>
+  )
+}

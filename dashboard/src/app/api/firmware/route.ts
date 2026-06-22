@@ -37,10 +37,22 @@ export async function POST(request: Request) {
       version: body.version,
       dosya_url: body.dosya_url,
       changelog: body.changelog || '',
-      target_device: body.target_device || 'lolin_c3_mini',
+      target_device: body.target_device || '',
       zorunlu: body.zorunlu || false,
       boyut: body.boyut || 0,
     })
+    return Response.json({ ok: true })
+  } catch (e) {
+    return Response.json({ error: String(e) }, { status: 500 })
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return Response.json({ error: 'id gerekli' }, { status: 400 })
+    await query('DELETE', `firmware?id=eq.${id}`)
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })

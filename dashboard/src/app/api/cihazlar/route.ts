@@ -20,11 +20,14 @@ async function query(method: string, path: string, body?: any) {
 
 export async function GET() {
   try {
-    const [rows, kayitliCihazlar, thresholds] = await Promise.all([
-      query('GET', 'telemetry?select=*&order=recorded_at.desc&limit=1000') as any[],
-      query('GET', 'devices?select=device_id,name,location') as any[],
-      query('GET', 'thresholds?select=device_id,metric') as any[],
+    const result = await Promise.all([
+      query('GET', 'telemetry?select=*&order=recorded_at.desc&limit=1000'),
+      query('GET', 'devices?select=device_id,name,location'),
+      query('GET', 'thresholds?select=device_id,metric'),
     ])
+    const rows = result[0] as any[]
+    const kayitliCihazlar = result[1] as any[]
+    const thresholds = result[2] as any[]
 
     const kayitliSet = new Set(kayitliCihazlar.map((d: any) => d.device_id))
     const deviceInfo = new Map(kayitliCihazlar.map((d: any) => [d.device_id, { name: d.name, location: d.location }]))

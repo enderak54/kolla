@@ -9,7 +9,10 @@
 #include <HTTPClient.h>
 #include <PubSubClient.h>
 #include <Preferences.h>
+#include <Update.h>
 #include <math.h>
+
+#define FIRMWARE_VERSION "1.0.0"
 
 // --- Pinler ---
 #define SDA_PIN      5
@@ -37,6 +40,7 @@ const unsigned long Z_LOST_EKRAN= 3000;
 const unsigned long Z_IP_EKRAN  = 3000;
 const unsigned long Z_NOKTA     = 500;
 const unsigned long Z_SAYFA     = 3000;
+const unsigned long Z_OTA_KONTROL = 60000;
 
 // --- Nesneler ---
 U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0);
@@ -71,8 +75,10 @@ bool alarmGonderildi = false;
 bool noktaDurum    = false;
 bool baglantiOldu  = false;
 bool flashRenk     = false;
+bool otaGuncelleniyor = false;
 int  ekranSayfa    = 0;
 unsigned long tSon_ekranSayfa = 0;
+unsigned long tSon_otaKontrol = 0;
 
 float sicaklik   = 0;
 float nem        = 0;
@@ -398,6 +404,110 @@ void vercelGonder() {
     http.end();
 }
 
+void otaKontrol() {
+    HTTPClient http;
+    char url[256];
+    snprintf(url, sizeof(url), "%s/api/firmware/check?device_id=%s&current_version=%s",
+             "https://kollabeni.vercel.app", cihazID, FIRMWARE_VERSION);
+    http.begin(url);
+    int code = http.GET();
+    if (code != 200) {
+        http.end();
+        return;
+    }
+    String body = http.getString();
+    http.end();
+    if (body.indexOf("\"update_available\":true") < 0) return;
+
+    int vStart = body.indexOf("\"version\":\"");
+    int uStart = body.indexOf("\"dosya_url\":\"");
+    if (vStart < 0 || uStart < 0) return;
+    vStart += 11;
+    int vEnd = body.indexOf("\"", vStart);
+    uStart += 13;
+    int uEnd = body.indexOf("\"", uStart);
+    if (vEnd < 0 || uEnd < 0) return;
+
+    String yeniVersion = body.substring(vStart, vEnd);
+    String dosyaUrl = body.substring(uStart, uEnd);
+    Serial.printf("[OTA] Guncelleme bulundu: v%s -> v%s\n", FIRMWARE_VERSION, yeniVersion.c_str());
+    Serial.printf("[OTA] Indiriliyor: %s\n", dosyaUrl.c_str());
+
+    otaGuncelleniyor = true;
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_5x7_tf);
+    u8g2.setCursor(0, 10);
+    u8g2.print("OTA");
+    u8g2.setCursor(0, 25);
+    u8g2.print("GUNCELLEME");
+    u8g2.setCursor(0, 38);
+    u8g2.print(yeniVersion.c_str());
+    u8g2.sendBuffer();
+
+    HTTPClient dl;
+    dl.begin(dosyaUrl);
+    int dlCode = dl.GET();
+    if (dlCode != 200) {
+        Serial.printf("[OTA] Indirme hatasi: %d\n", dlCode);
+        dl.end();
+        otaGuncelleniyor = false;
+        return;
+    }
+    int toplamBoyut = dl.getSize();
+    if (toplamBoyut <= 0) {
+        Serial.println("[OTA] Gecersiz dosya boyutu");
+        dl.end();
+        otaGuncelleniyor = false;
+        return;
+    }
+
+    if (!Update.begin(toplamBoyut)) {
+        Serial.printf("[OTA] Baslatma hatasi: %s\n", Update.errorString());
+        dl.end();
+        otaGuncelleniyor = false;
+        return;
+    }
+
+    WiFiClient* stream = dl.getStreamPtr();
+    uint8_t buf[128];
+    int yazilan = 0;
+    while (dl.connected() && yazilan < toplamBoyut) {
+        int okunan = stream->readBytes(buf, (sizeof(buf) < (unsigned)(toplamBoyut - yazilan)) ? sizeof(buf) : (toplamBoyut - yazilan));
+        if (okunan == 0) break;
+        Update.write(buf, okunan);
+        yazilan += okunan;
+        int yuzde = (yazilan * 100) / toplamBoyut;
+        u8g2.clearBuffer();
+        u8g2.setFont(u8g2_font_5x7_tf);
+        u8g2.setCursor(0, 10);
+        u8g2.print("OTA %");
+        u8g2.setCursor(30, 10);
+        u8g2.print(yuzde);
+        u8g2.setCursor(0, 25);
+        u8g2.print(String(yazilan / 1024) + "KB");
+        u8g2.setCursor(40, 25);
+        u8g2.print("/ " + String(toplamBoyut / 1024) + "KB");
+        u8g2.sendBuffer();
+    }
+    dl.end();
+
+    if (Update.end() && Update.isFinished()) {
+        Serial.println("[OTA] Basarili! Yeniden baslatiliyor...");
+        u8g2.clearBuffer();
+        u8g2.setFont(u8g2_font_5x7_tf);
+        u8g2.setCursor(0, 22);
+        u8g2.print("GUNCELLEME");
+        u8g2.setCursor(0, 35);
+        u8g2.print("BASARILI!");
+        u8g2.sendBuffer();
+        delay(2000);
+        esp_restart();
+    } else {
+        Serial.printf("[OTA] Hata: %s\n", Update.errorString());
+        otaGuncelleniyor = false;
+    }
+}
+
 char cihazID[24];
 char cihazMAC[18];
 
@@ -535,6 +645,14 @@ void loop() {
         tSon_vercel = now;
         if (normalMod && WiFi.status() == WL_CONNECTED) {
             vercelGonder();
+        }
+    }
+
+    // --- OTA Kontrol (60 sn) ---
+    if (now - tSon_otaKontrol >= Z_OTA_KONTROL) {
+        tSon_otaKontrol = now;
+        if (normalMod && WiFi.status() == WL_CONNECTED && !otaGuncelleniyor) {
+            otaKontrol();
         }
     }
 

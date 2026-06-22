@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from 'react'
 import iller from '@/data/turkiye-il-ilce.json'
-import { TelemetryData, Threshold, Ayar, SensorCard, Card, ThresholdCard, MiniChart, StatusBadge, AyarSatir } from '@/app/components/shared'
+import { TelemetryData, Threshold, Ayar, SensorCard, Card, ThresholdCard, MiniChart, StatusBadge, AyarSatir, SinyalGosterge, OzetKarti, AlarmPaneli, CSVExport } from '@/app/components/shared'
 
 export default function CihazDetay({ params }: { params: Promise<{ device_id: string }> }) {
   const { device_id } = use(params)
@@ -66,15 +66,20 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       {error && <p className="text-red-400 mb-4">{error}</p>}
       <div className="w-full max-w-4xl flex flex-wrap gap-3 justify-center mb-6">
         <StatusBadge label="ESP32" active={!!aktif} />
-        <StatusBadge label="Wi-Fi" active={!!aktif} detail={data?.wifiRssi !== undefined ? `${data.wifiRssi} dBm` : undefined} />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm bg-gray-800 border border-gray-700">
+          <SinyalGosterge rssi={data?.wifiRssi} />
+        </div>
         <StatusBadge label="MQTT Lokal" active={data?.mqttLokal === 1} />
         <StatusBadge label="Adafruit IO" active={data?.mqttAio === 1} />
       </div>
-      {alertSicaklik && (
-        <div className="w-full max-w-4xl bg-red-900/50 border border-red-500 rounded-xl px-5 py-3 mb-4 text-center text-red-300 font-semibold">
-          ⚠ Sıcaklık uyarısı! {data!.sicaklik.toFixed(1)}°C (limit: {thresholdMap.sicaklik.min_val}-{thresholdMap.sicaklik.max_val}°C)
-        </div>
-      )}
+      {(() => {
+        const alerts: string[] = []
+        if (alertSicaklik) alerts.push(`Sıcaklık uyarısı! ${data!.sicaklik.toFixed(1)}°C (limit: ${thresholdMap.sicaklik.min_val}-${thresholdMap.sicaklik.max_val}°C)`)
+        if (thresholdMap.nem?.enabled && data && (data.nem < thresholdMap.nem.min_val || data.nem > thresholdMap.nem.max_val))
+          alerts.push(`Nem uyarısı! %${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
+        if (data && !aktif) alerts.push('Cihaz bağlantısı kesildi! Son veri 15sn önce.')
+        return <AlarmPaneli alerts={alerts} />
+      })()}
       {data ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-4xl mb-8">
           <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
@@ -89,7 +94,19 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       )}
       {history.length > 0 && (
         <div className="w-full max-w-4xl mb-8">
-          <div className="flex gap-2 mb-4 items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <OzetKarti data={filteredHistory} />
+            <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700 flex flex-col justify-center items-center">
+              <span className="text-xs text-gray-500 mb-2">Wi-Fi Sinyal</span>
+              <SinyalGosterge rssi={data?.wifiRssi} />
+              {data?.wifiRssi !== undefined && (
+                <span className="text-[10px] text-gray-600 mt-1">
+                  {data.wifiRssi >= -50 ? 'Mükemmel' : data.wifiRssi >= -65 ? 'İyi' : data.wifiRssi >= -80 ? 'Orta' : 'Zayıf'}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2 mb-4 items-center flex-wrap">
             {[[3600,'1s'], [21600,'6s'], [86400,'24s']].map(([s, l]) => (
               <button key={s} onClick={() => setTimeRange(s as number)}
                 className={`px-4 py-1 rounded-full text-sm ${timeRange === s ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{l}</button>
@@ -100,6 +117,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
               <button key={ms} onClick={() => setRefreshMs(ms)}
                 className={`px-3 py-1 rounded-full text-xs ${refreshMs === ms ? 'bg-emerald-700 text-white' : 'bg-gray-800 text-gray-400 border border-gray-700'}`}>{ms/1000}s</button>
             ))}
+            <span className="flex-1" />
+            <CSVExport data={filteredHistory} filename={`kolla_${deviceId}_${Date.now()}.csv`} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[ 
@@ -136,14 +155,18 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
             </div>
           ))}
         </div>
-      <div className="w-full max-w-4xl mt-8 flex gap-4 justify-center">
+      <div className="w-full max-w-4xl mt-8 flex gap-4 justify-center flex-wrap">
         <a href={`/cihaz/${encodeURIComponent(deviceId)}/yapilandirma`}
           className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl px-5 py-3 text-sm text-gray-300 transition-colors">
           ⚙ Cihaz Yapılandırma
         </a>
-        <a href="/firmware"
+        <a href={`/firmware?device_id=${encodeURIComponent(deviceId)}`}
           className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl px-5 py-3 text-sm text-gray-300 transition-colors">
-          📦 Firmware Yönetimi
+          📦 Firmware
+        </a>
+        <a href="/cihaz-yonetimi"
+          className="bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl px-5 py-3 text-sm text-gray-300 transition-colors">
+          ⚙ Cihaz Yönetimi
         </a>
       </div>
       {data && (
