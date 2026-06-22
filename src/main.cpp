@@ -42,6 +42,9 @@ const unsigned long Z_NOKTA     = 500;
 const unsigned long Z_SAYFA     = 3000;
 const unsigned long Z_OTA_KONTROL = 60000;
 
+extern char cihazID[];
+extern char cihazMAC[];
+
 // --- Nesneler ---
 U8G2_SSD1306_72X40_ER_F_HW_I2C u8g2(U8G2_R0);
 Adafruit_BME280 bme;
