@@ -6,6 +6,7 @@ import Link from 'next/link'
 const menu = [
   { label: 'Cihazlar', href: '/', icon: '📡' },
   { label: 'Cihaz Yönetimi', href: '/cihaz-yonetimi', icon: '⚙' },
+  { label: 'Raporlar', href: '/raporlar', icon: '📊' },
   { label: 'Birimler', href: '/ayarlar/birimler', icon: '🏠' },
   { label: 'Eşik Şablonları', href: '/ayarlar/esik-sablonlari', icon: '📋' },
   { label: 'Firmware', href: '/firmware', icon: '📦' },
