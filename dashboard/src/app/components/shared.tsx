@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 
 export interface TelemetryData {
   device_id?: string; mac?: string; sicaklik: number; nem: number; basinc: number; ses: number; cpu: number; ram: number
-  wifiRssi?: number; mqttLokal?: number; mqttAio?: number; timestamp: number
+  wifiRssi?: number; mqttLokal?: number; mqttAio?: number; timestamp: number; kapi?: boolean | null
 }
 
 export interface Threshold { metric: string; min_val: number; max_val: number; enabled: boolean }

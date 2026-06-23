@@ -31,6 +31,8 @@ interface TelemetryData {
   mqttLokal?: number
   mqttAio?: number
   timestamp: number
+  kapi?: boolean
+  sensors?: { sensor_id: string; metric: string; value: number }[]
 }
 
 export async function POST(request: Request) {
@@ -70,6 +72,31 @@ export async function POST(request: Request) {
       recorded_at: new Date(body.timestamp).toISOString(),
     }
     if (body.mac) payload.mac = body.mac
+    if (body.kapi !== undefined) payload.kapi = body.kapi
+
+    const supabaseUrl = SUPABASE_URL
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (Array.isArray(body.sensors) && body.sensors.length > 0 && anonKey) {
+      const now = new Date().toISOString()
+      const sensorRows = body.sensors.map((s: any) => ({
+        device_id: deviceId,
+        sensor_id: s.sensor_id,
+        metric: s.metric,
+        value: s.value,
+        recorded_at: now,
+      }))
+      fetch(`${supabaseUrl}/rest/v1/sensor_telemetry`, {
+        method: 'POST',
+        headers: {
+          'apikey': anonKey,
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(sensorRows),
+      }).catch(() => {})
+    }
 
     await query('POST', 'telemetry', payload)
 
@@ -101,11 +128,32 @@ export async function GET(request: Request) {
       mqttLokal: r.mqtt_lokal ? 1 : 0,
       mqttAio: r.mqtt_aio ? 1 : 0,
       timestamp: new Date(r.recorded_at).getTime(),
+      kapi: r.kapi ?? null,
     })
 
+    const reversed = [...history].reverse().map(mapRow)
+
+    const kapiDurumHesapla = (prev: TelemetryData | null, cur: TelemetryData): boolean | null => {
+      if (cur.kapi !== null && cur.kapi !== undefined) return cur.kapi
+      if (prev && cur.sicaklik !== undefined && prev.sicaklik !== undefined) {
+        const delta = cur.sicaklik - prev.sicaklik
+        return delta > 0.5
+      }
+      return null
+    }
+
+    let prev: TelemetryData | null = null
+    for (const cur of reversed) {
+      const kd = kapiDurumHesapla(prev, cur)
+      if (kd !== null) cur.kapi = kd
+      prev = cur
+    }
+
+    const latest = reversed[reversed.length - 1] || null
+
     return Response.json({
-      latest: history[0] ? mapRow(history[0]) : null,
-      history: [...history].reverse().map(mapRow),
+      latest,
+      history: reversed,
     })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })

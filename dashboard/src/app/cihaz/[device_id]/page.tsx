@@ -4,6 +4,13 @@ import { useEffect, useState, use } from 'react'
 import iller from '@/data/turkiye-il-ilce.json'
 import { TelemetryData, Threshold, Ayar, SensorCard, Card, ThresholdCard, MiniChart, StatusBadge, AyarSatir, SinyalGosterge, OzetKarti, AlarmPaneli, CSVExport } from '@/app/components/shared'
 
+interface SensorData {
+  device_id: string
+  sensor_id: string
+  metrics: Record<string, number>
+  history: { metric: string; value: number; recorded_at: string }[]
+}
+
 export default function CihazDetay({ params }: { params: Promise<{ device_id: string }> }) {
   const { device_id } = use(params)
   const deviceId = decodeURIComponent(device_id)
@@ -16,23 +23,53 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const [error, setError] = useState('')
   const [cihazAdi, setCihazAdi] = useState('')
   const [aktifSensörler, setAktifSensörler] = useState(0)
+  const [kapiKontrol, setKapiKontrol] = useState('kapali')
+  const [ekSensors, setEkSensors] = useState<SensorData[]>([])
+  const [gonderildi, setGonderildi] = useState<Set<string>>(new Set())
+  const [kameraSon, setKameraSon] = useState<{ url: string; captured_at: string } | null>(null)
+  const [kameraAktif, setKameraAktif] = useState(false)
+
+  const bildirimGonder = async (tip: string, baslik: string, mesaj: string) => {
+    const key = `${tip}-${Date.now()}`
+    if (gonderildi.has(key)) return
+    setGonderildi(prev => new Set(prev).add(key))
+    try {
+      await fetch('/api/bildirim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id: deviceId, tip, baslik, mesaj }),
+      })
+    } catch {}
+    setTimeout(() => setGonderildi(prev => { const n = new Set(prev); n.delete(key); return n }), 300000)
+  }
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [tr, tr2, tr3, ccfg] = await Promise.all([
+        const [tr, tr2, tr3, ccfg, st, km, ka] = await Promise.all([
           fetch(`/api/telemetry?device_id=${encodeURIComponent(deviceId)}`).then(r => r.json()),
           fetch('/api/thresholds').then(r => r.json()),
           fetch('/api/ayarlar').then(r => r.json()),
           fetch(`/api/cihaz-yapilandirma?device_id=${encodeURIComponent(deviceId)}`).then(r => r.json().catch(() => ({}))),
+          fetch(`/api/sensor-telemetry?device_id=${encodeURIComponent(deviceId)}&limit=500`).then(r => r.json().catch(() => ({}))),
+          fetch(`/api/kamera?device_id=${encodeURIComponent(deviceId)}&limit=1`).then(r => r.json()).catch(() => []),
+          fetch('/api/ayarlar').then(r => r.json()).catch(() => []),
         ])
         if (tr.latest) setData(tr.latest)
         if (tr.history) setHistory(tr.history)
         if (Array.isArray(tr2)) setThresholds(tr2)
         if (Array.isArray(tr3)) setAyarlar(tr3)
         if (ccfg.ad) setCihazAdi(ccfg.ad)
+        if (ccfg.kapi_kontrol) setKapiKontrol(ccfg.kapi_kontrol)
         if (Array.isArray(ccfg.sensor_config)) {
           setAktifSensörler(ccfg.sensor_config.filter((s: any) => s.aktif).length)
+        }
+        if (st?.sensors) setEkSensors(st.sensors)
+        if (Array.isArray(km) && km.length > 0) {
+          setKameraSon({ url: `https://fpcvwfqhungfeukgophd.supabase.co/storage/v1/object/public/kamera/${km[0].storage_path}`, captured_at: km[0].captured_at })
+        }
+        if (Array.isArray(ka)) {
+          setKameraAktif(ka.find((a: any) => a.anahtar === `kamera_aktif_${deviceId}`)?.deger === 'true')
         }
       } catch { setError('Veri alinamadi') }
     }
@@ -46,6 +83,16 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const filteredHistory = history.filter(d => (now - d.timestamp) < timeRange * 1000)
   const thresholdMap = Object.fromEntries(thresholds.map(t => [t.metric, t]))
   const alertSicaklik = thresholdMap.sicaklik?.enabled && data && (data.sicaklik < thresholdMap.sicaklik.min_val || data.sicaklik > thresholdMap.sicaklik.max_val)
+
+  const kapiAcik = data?.kapi === true
+  let kapiDegisimSayisi = 0
+  let oncekiKapi: boolean | null = null
+  for (const d of filteredHistory) {
+    if (d.kapi === true && oncekiKapi === false) kapiDegisimSayisi++
+    if (d.kapi !== undefined && d.kapi !== null) oncekiKapi = d.kapi
+  }
+  const kapiModEtiket: Record<string, string> = { kapali: 'Kapalı', yazilim: 'Yazılım (Delta)', donanim: 'Donanım (Sensör)' }
+
   const secilenSehir = ayarlar.find(a => a.anahtar === 'sehir')?.deger || ''
   const ilceListesi = iller.iller.find(i => i.il === secilenSehir)?.ilceler ?? []
   const secenekler: Record<string, string[]> = {
@@ -74,10 +121,22 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       </div>
       {(() => {
         const alerts: string[] = []
-        if (alertSicaklik) alerts.push(`Sıcaklık uyarısı! ${data!.sicaklik.toFixed(1)}°C (limit: ${thresholdMap.sicaklik.min_val}-${thresholdMap.sicaklik.max_val}°C)`)
-        if (thresholdMap.nem?.enabled && data && (data.nem < thresholdMap.nem.min_val || data.nem > thresholdMap.nem.max_val))
+        if (alertSicaklik) {
+          alerts.push(`Sıcaklık uyarısı! ${data!.sicaklik.toFixed(1)}°C (limit: ${thresholdMap.sicaklik.min_val}-${thresholdMap.sicaklik.max_val}°C)`)
+          bildirimGonder('esik_ihlali', `Sıcaklık eşik ihlali - ${cihazAdi || deviceId}`, `${data!.sicaklik.toFixed(1)}°C (limit: ${thresholdMap.sicaklik.min_val}-${thresholdMap.sicaklik.max_val})`)
+        }
+        if (thresholdMap.nem?.enabled && data && (data.nem < thresholdMap.nem.min_val || data.nem > thresholdMap.nem.max_val)) {
           alerts.push(`Nem uyarısı! %${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
-        if (data && !aktif) alerts.push('Cihaz bağlantısı kesildi! Son veri 15sn önce.')
+          bildirimGonder('esik_ihlali', `Nem eşik ihlali - ${cihazAdi || deviceId}`, `%${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
+        }
+        if (data && !aktif) {
+          alerts.push('Cihaz bağlantısı kesildi! Son veri 15sn önce.')
+          bildirimGonder('cihaz_kopma', `Cihaz bağlantısı koptu - ${cihazAdi || deviceId}`, `Son veri: ${new Date(data.timestamp).toLocaleString('tr-TR')}`)
+        }
+        if (kapiAcik) {
+          alerts.push('Kapı açık!')
+          bildirimGonder('kapi_acik', `Kapı açık - ${cihazAdi || deviceId}`, `${kapiDegisimSayisi} kez açıldı`)
+        }
         return <AlarmPaneli alerts={alerts} />
       })()}
       {data ? (
@@ -88,6 +147,25 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
           <Card label="CPU" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
           <Card label="RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} color="purple" />
+          {kapiKontrol !== 'kapali' && (
+            <div className={`rounded-2xl p-5 flex flex-col items-center shadow-lg border col-span-1 ${kapiAcik ? 'border-red-500 bg-red-950/40' : 'border-emerald-500 bg-emerald-950/30'}`}>
+              <span className="text-sm text-gray-400 mb-1">Kapı ({kapiModEtiket[kapiKontrol]})</span>
+              <span className={`text-2xl font-semibold ${kapiAcik ? 'text-red-400' : 'text-emerald-300'}`}>
+                {kapiAcik ? 'Açık' : 'Kapalı'}
+              </span>
+              {kapiDegisimSayisi > 0 && <span className="text-[10px] text-gray-500 mt-1">{kapiDegisimSayisi} açılma</span>}
+            </div>
+          )}
+          {ekSensors.map(s =>
+            Object.entries(s.metrics).map(([mKey, mVal]) => {
+              const renkler = ['red', 'blue', 'green', 'yellow', 'orange', 'purple']
+              const idx = ekSensors.indexOf(s) * 10 + Object.keys(s.metrics).indexOf(mKey)
+              const renk = renkler[idx % renkler.length]
+              const birim: Record<string, string> = { sicaklik: '°C', nem: '%', basinc: 'hPa', ses: '', seviye: '%', kapi: '' }
+              const etiket: Record<string, string> = { sicaklik: 'Sıcaklık', nem: 'Nem', basinc: 'Basınç', ses: 'Ses', seviye: 'Seviye', kapi: 'Kapı' }
+              return <Card key={`${s.sensor_id}-${mKey}`} label={`${s.sensor_id} ${etiket[mKey] || mKey}`} value={`${mVal}${birim[mKey] || ''}`} color={renk} />
+            })
+          )}
         </div>
       ) : (
         <p className="text-gray-400 mb-8">Veri bekleniyor...</p>
@@ -136,6 +214,24 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
                 ))}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {kameraAktif && (
+        <div className="w-full max-w-4xl mb-6">
+          <h2 className="text-xl font-semibold mb-3 text-emerald-400">Kamera</h2>
+          <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
+            {kameraSon ? (
+              <div>
+                <a href={kameraSon.url} target="_blank" rel="noopener noreferrer">
+                  <img src={kameraSon.url} alt="Son snapshot" className="max-h-64 w-auto rounded-lg" />
+                </a>
+                <p className="text-[10px] text-gray-500 mt-2">Son: {new Date(kameraSon.captured_at).toLocaleString('tr-TR')}</p>
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">Henüz snapshot yok</p>
+            )}
+            <a href="/kamera" className="text-emerald-400 hover:text-emerald-300 text-xs mt-2 inline-block">Tüm fotoğraflar →</a>
           </div>
         </div>
       )}

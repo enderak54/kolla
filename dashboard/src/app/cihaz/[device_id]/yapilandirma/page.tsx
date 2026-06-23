@@ -20,6 +20,7 @@ interface CihazConfig {
   wifi_password: string
   oled_direction: number
   son_guncelleme: string
+  kapi_kontrol: string
 }
 
 const sensorTipleri = [
@@ -49,6 +50,7 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
   const [wifiPass, setWifiPass] = useState('')
   const [oledDir, setOledDir] = useState(0)
   const [sensors, setSensors] = useState<SensorInstance[]>([])
+  const [kapiKontrol, setKapiKontrol] = useState('kapali')
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -63,6 +65,7 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
         setWifiSsid(data.wifi_ssid || '')
         setWifiPass(data.wifi_password || '')
         setOledDir(data.oled_direction || 0)
+        setKapiKontrol(data.kapi_kontrol || 'kapali')
         if (Array.isArray(data.sensor_config)) {
           setSensors(data.sensor_config)
         } else if (data.sensor_config && typeof data.sensor_config === 'object') {
@@ -110,6 +113,7 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
           wifi_ssid: wifiSsid,
           wifi_password: wifiPass,
           oled_direction: oledDir,
+          kapi_kontrol: kapiKontrol,
         }),
       })
       const data = await res.json()
@@ -160,6 +164,16 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                     <option value={2}>180°</option>
                     <option value={3}>270°</option>
                   </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Kapı Kontrolü</label>
+                  <select value={kapiKontrol} onChange={e => setKapiKontrol(e.target.value)}
+                    className="w-full bg-gray-700 rounded-lg px-3 py-2 text-sm text-white border border-gray-600">
+                    <option value="kapali">Kapalı</option>
+                    <option value="yazilim">Yazılım (Sıcaklık Deltası)</option>
+                    <option value="donanim">Donanım (Kapı Sensörü)</option>
+                  </select>
+                  <p className="text-[10px] text-gray-500 mt-1">Yazılım: sıcaklık artışından algıla. Donanım: ESP32'ye bağlı reed switch.</p>
                 </div>
               </div>
             </div>

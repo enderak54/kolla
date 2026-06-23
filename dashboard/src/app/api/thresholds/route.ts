@@ -21,8 +21,10 @@ async function supabase(method: string, path: string, body?: any) {
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
-    const deviceId = url.searchParams.get('device_id') || 'KOLLA-000001'
-    const data = await supabase('GET', `thresholds?select=*&device_id=eq.${deviceId}`)
+    const deviceId = url.searchParams.get('device_id')
+    let path = 'thresholds?select=*'
+    if (deviceId && deviceId !== 'ALL') path += `&device_id=eq.${encodeURIComponent(deviceId)}`
+    const data = await supabase('GET', path)
     return Response.json(data)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
