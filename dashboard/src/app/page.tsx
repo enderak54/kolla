@@ -3,6 +3,18 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
+function goreceliZaman(ts: number): string {
+  const sn = Math.floor((Date.now() - ts) / 1000)
+  if (sn < 5) return 'şimdi'
+  if (sn < 60) return `${sn}sn önce`
+  const dk = Math.floor(sn / 60)
+  if (dk < 60) return `${dk}dk önce`
+  const saat = Math.floor(dk / 60)
+  if (saat < 24) return `${saat}s önce`
+  const gun = Math.floor(saat / 24)
+  return `${gun}g önce`
+}
+
 interface Cihaz {
   device_id: string
   mac: string | null
@@ -90,7 +102,10 @@ export default function CihazListesi() {
                   <span className={`w-3 h-3 rounded-full ${c.aktif ? 'bg-emerald-400 shadow-[0_0_8px_#34d399]' : 'bg-red-400'}`} />
                   <span className="text-lg font-medium">{c.device_id}</span>
                 </div>
-                <span className="text-xs text-gray-500">{c.kayitSayisi} kayıt</span>
+                <div className="text-right">
+                  <span className="text-[10px] text-gray-500 block">{goreceliZaman(c.sonGuncelleme)}</span>
+                  <span className="text-[10px] text-gray-600" title={new Date(c.sonGuncelleme).toLocaleString('tr-TR')}>{c.kayitSayisi} kayıt</span>
+                </div>
               </div>
               {c.mac && <p className="text-xs text-gray-500 font-mono mb-2">MAC: {c.mac}</p>}
               <div className="grid grid-cols-3 gap-3 text-center">

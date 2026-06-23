@@ -109,7 +109,13 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       </div>
       <h1 className="text-2xl font-bold mb-1 text-emerald-400">Kolla Medikal Takip</h1>
       <p className="text-lg font-medium text-gray-300">{cihazAdi || deviceId}</p>
-      <p className="text-xs text-gray-500 mb-6">{deviceId}{data?.mac && ` · ${data.mac}`}{aktifSensörler > 0 && ` · ${aktifSensörler} sensör aktif`}</p>
+      <p className="text-xs text-gray-500 mb-2">{deviceId}{data?.mac && ` · ${data.mac}`}{aktifSensörler > 0 && ` · ${aktifSensörler} sensör aktif`}</p>
+      {data && (
+        <p className="text-xs text-gray-600 mb-4">
+          Son güncelleme: {new Date(data.timestamp).toLocaleString('tr-TR')}
+          {aktif ? <span className="text-emerald-500 ml-2">● canlı</span> : <span className="text-red-400 ml-2">● {Math.floor((Date.now() - data.timestamp) / 1000)}sn önce</span>}
+        </p>
+      )}
       {error && <p className="text-red-400 mb-4">{error}</p>}
       <div className="w-full max-w-4xl flex flex-wrap gap-3 justify-center mb-6">
         <StatusBadge label="ESP32" active={!!aktif} />
@@ -140,7 +146,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         return <AlarmPaneli alerts={alerts} />
       })()}
       {data ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full max-w-4xl mb-8">
+        <div className="w-full max-w-4xl mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-2">
           <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
           <SensorCard label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem} />
           <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
@@ -156,6 +163,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
               {kapiDegisimSayisi > 0 && <span className="text-[10px] text-gray-500 mt-1">{kapiDegisimSayisi} açılma</span>}
             </div>
           )}
+          <p className="text-[10px] text-gray-600 text-right col-span-full">Ölçüm: {new Date(data!.timestamp).toLocaleString('tr-TR')}</p>
           {ekSensors.map(s =>
             Object.entries(s.metrics).map(([mKey, mVal]) => {
               const renkler = ['red', 'blue', 'green', 'yellow', 'orange', 'purple']
@@ -166,6 +174,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
               return <Card key={`${s.sensor_id}-${mKey}`} label={`${s.sensor_id} ${etiket[mKey] || mKey}`} value={`${mVal}${birim[mKey] || ''}`} color={renk} />
             })
           )}
+        </div>
         </div>
       ) : (
         <p className="text-gray-400 mb-8">Veri bekleniyor...</p>
