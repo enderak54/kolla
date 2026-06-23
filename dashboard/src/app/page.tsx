@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { supabase } from '@/lib/supabase'
 
 interface Cihaz {
   device_id: string
@@ -17,6 +18,29 @@ interface Cihaz {
 
 export default function CihazListesi() {
   const [cihazlar, setCihazlar] = useState<Cihaz[]>([])
+  const [oturumVar, setOturumVar] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setOturumVar(!!session)
+      if (!session) {
+        // Try to handle fragment-based auth (email confirmation redirect)
+        const hash = window.location.hash
+        if (hash && hash.includes('access_token')) {
+          supabase.auth.getSession().then(({ data: { session: s } }) => {
+            setOturumVar(!!s)
+            if (s?.access_token) {
+              fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ access_token: s.access_token, refresh_token: s.refresh_token }),
+              }).then(() => window.location.hash = '')
+            }
+          })
+        }
+      }
+    })
+  }, [])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -42,6 +66,11 @@ export default function CihazListesi() {
     <div className="flex flex-col items-center">
       <h1 className="text-2xl font-bold mb-2 text-emerald-400">Kolla Medikal Takip</h1>
       <p className="text-sm text-gray-500 mb-6">Bağlı Cihazlar</p>
+      {oturumVar === false && (
+        <div className="bg-amber-900/20 border border-amber-700/40 rounded-xl px-4 py-3 text-amber-300 text-sm mb-4">
+          Giriş yapmadınız. <a href="/giris" className="underline text-emerald-400">Giriş Yap</a> — kayıtlı değilseniz e-posta + şifre ile kaydolun.
+        </div>
+      )}
       {error && <p className="text-red-400 mb-4">{error}</p>}
       {loading ? (
         <p className="text-gray-400">Yükleniyor...</p>

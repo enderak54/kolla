@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
-const publicPaths = ['/giris', '/api/auth']
+const publicPaths = ['/giris', '/api/auth', '/']
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
