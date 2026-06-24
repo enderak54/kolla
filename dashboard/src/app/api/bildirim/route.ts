@@ -1,5 +1,11 @@
+import { auditLog } from '@/lib/audit'
+
 const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+function getClientIp(request: Request): string {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+}
 
 async function sb(method: string, path: string, body?: any) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -34,16 +40,21 @@ export async function POST(request: Request) {
     const { device_id, tip, baslik, mesaj } = body
     if (!tip || !baslik) return Response.json({ error: 'tip ve baslik gerekli' }, { status: 400 })
 
-    await sb('POST', 'bildirimler', {
+    const result = await sb('POST', 'bildirimler', {
       device_id: device_id || null,
       tip,
       baslik,
       mesaj: mesaj || '',
-      kanal: 'ekran',
+      kanal: 'ekkan',
       durum: 'bekliyor',
       gonderildi: false,
       created_at: new Date().toISOString(),
     })
+
+    const ip = getClientIp(request)
+    if (result?.[0]?.id) {
+      await auditLog('NOTIFICATION_CREATE', 'bildirimler', String(result[0].id), { tip, baslik, device_id }, undefined, undefined, ip)
+    }
 
     const kanallar: any[] = await sb('GET', 'bildirim_kanallari?select=*&aktif=eq.true')
     for (const k of kanallar) {
@@ -79,6 +90,10 @@ export async function PATCH(request: Request) {
     const { id, durum } = await request.json()
     if (!id || !durum) return Response.json({ error: 'id ve durum gerekli' }, { status: 400 })
     await sb('PATCH', `bildirimler?id=eq.${id}`, { durum })
+
+    const ip = getClientIp(request)
+    await auditLog('NOTIFICATION_UPDATE', 'bildirimler', String(id), { durum }, undefined, undefined, ip)
+
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })

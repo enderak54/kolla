@@ -1,4 +1,10 @@
+import { auditLog } from '@/lib/audit'
+
 const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
+
+function getClientIp(request: Request): string {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown'
+}
 
 async function query(method: string, path: string, body?: any) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -83,6 +89,9 @@ export async function DELETE(request: Request) {
     await query('DELETE', `telemetry?device_id=eq.${deviceId}`)
     await query('DELETE', `devices?device_id=eq.${deviceId}`)
 
+    const ip = getClientIp(request)
+    await auditLog('DEVICE_DELETE', 'devices', deviceId, {}, undefined, undefined, ip)
+
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -98,8 +107,12 @@ export async function POST(request: Request) {
     const existing = await query('GET', `devices?device_id=eq.${deviceId}&select=device_id`) as any[]
     if (existing.length > 0) {
       await query('PATCH', `devices?device_id=eq.${deviceId}`, { name: body.ad || deviceId, location: body.location || '' })
+      const ip = getClientIp(request)
+      await auditLog('DEVICE_UPDATE', 'devices', deviceId, { ad: body.ad, location: body.location }, undefined, undefined, ip)
     } else {
       await query('POST', 'devices', { device_id: deviceId, name: body.ad || deviceId, location: body.location || '' })
+      const ip = getClientIp(request)
+      await auditLog('DEVICE_CREATE', 'devices', deviceId, { ad: body.ad, location: body.location }, undefined, undefined, ip)
     }
 
     return Response.json({ ok: true })
