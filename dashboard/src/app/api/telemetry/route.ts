@@ -85,19 +85,24 @@ export async function POST(request: Request) {
 
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    if (Array.isArray(body.sensors) && body.sensors.length > 0 && anonKey) {
-      const sensorObj: Record<string, any> = {}
+    const gazAlani = (k: string) => ['gaz_genel','lpg','co','duman','metan','hidrojen'].includes(k)
+    const sensorObj: Record<string, any> = {}
+    if (Array.isArray(body.sensors)) {
       for (const s of body.sensors) {
-        sensorObj[s.metric] = s.value
+        if (s && s.metric) sensorObj[s.metric] = s.value
       }
+    }
+    for (const k of Object.keys(body)) {
+      if (gazAlani(k) && typeof (body as any)[k] === 'number') sensorObj[k] = (body as any)[k]
+    }
+
+    if (Object.keys(sensorObj).length > 0 && anonKey) {
       const anonHeaders = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}`, 'Content-Type': 'application/json' }
-      // Save latest
       fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
         method: 'POST',
         headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
         body: JSON.stringify({ anahtar: `son_sensor_${deviceId}`, deger: JSON.stringify(sensorObj), kategori: 'sensor' }),
       }).catch(() => {})
-      // Append to history
       ;(async () => {
         try {
           const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar?anahtar=eq.${encodeURIComponent('sensor_gecmis_' + deviceId)}&select=deger`, { headers: anonHeaders })
