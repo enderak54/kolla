@@ -276,14 +276,12 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
                 ))}
               </div>
             ))}
-            {sensorGecmis.length > 0 && gazMetrics.filter(gm => sensorGecmis.some((e: any) => e[gm] != null)).map(gm => {
-              const renkler: Record<string, string> = { gaz_genel: '#F97316', lpg: '#A855F7', co: '#EF4444', duman: '#6B7280', metan: '#22C55E', hidrojen: '#3B82F6' }
-              return (
+            {sensorGecmis.length > 0 && gazMetrics.filter(gm => sensorGecmis.some((e: any) => e[gm] != null)).map(gm => (
                 <div key={gm}>
-                  <MiniChart data={sensorGecmis} dataKey={gm} color={renkler[gm] || '#F97316'} name={`${gazEtiket[gm]} ppm`} />
+                  <MiniChart data={sensorGecmis} dataKey={gm} color={{ gaz_genel: '#F97316', lpg: '#A855F7', co: '#EF4444', duman: '#6B7280', metan: '#22C55E', hidrojen: '#3B82F6' }[gm] || '#F97316'} name={`${gazEtiket[gm]} ppm`} />
                 </div>
-              )
-            })}
+            ))}
+          </div>
         </div>
       )}
       {kameraAktif && (
