@@ -49,7 +49,7 @@ export function ThresholdCard({ threshold, onUpdate }: { threshold: Threshold; o
   const [saving, setSaving] = useState(false)
   const labels: Record<string, string> = {
     sicaklik: 'Sıcaklık °C', nem: 'Nem %', basinc: 'Basınç hPa',
-    gaz: 'Gaz ppm', gaz_lpg: 'LPG ppm', gaz_co: 'CO ppm', gaz_duman: 'Duman ppm', gaz_metan: 'Metan ppm', gaz_hidrojen: 'Hidrojen ppm',
+    gaz_genel: 'Gaz (MQ-2) ppm', lpg: 'LPG ppm', co: 'CO ppm', duman: 'Duman ppm', metan: 'Metan ppm', hidrojen: 'Hidrojen ppm',
   }
 
   const save = async () => {

@@ -14,11 +14,11 @@ interface EsikSablonu {
 
 const metricAdlari: Record<string, string> = {
   sicaklik: 'Sıcaklık (°C)', nem: 'Nem (%)', basinc: 'Basınç (hPa)',
-  gaz: 'Gaz (ppm)', gaz_lpg: 'LPG (ppm)', gaz_co: 'CO (ppm)', gaz_duman: 'Duman (ppm)', gaz_metan: 'Metan (ppm)', gaz_hidrojen: 'Hidrojen (ppm)',
+  gaz_genel: 'Gaz (MQ-2 ppm)', lpg: 'LPG (ppm)', co: 'CO (ppm)', duman: 'Duman (ppm)', metan: 'Metan (ppm)', hidrojen: 'Hidrojen (ppm)',
 }
 const metricVarsayilan: Record<string, { min: number; max: number }> = {
   sicaklik: { min: 18, max: 30 }, nem: { min: 30, max: 70 }, basinc: { min: 980, max: 1030 },
-  gaz: { min: 0, max: 500 }, gaz_lpg: { min: 0, max: 1000 }, gaz_co: { min: 0, max: 300 }, gaz_duman: { min: 0, max: 1000 }, gaz_metan: { min: 0, max: 1000 }, gaz_hidrojen: { min: 0, max: 1000 },
+  gaz_genel: { min: 0, max: 500 }, lpg: { min: 0, max: 1000 }, co: { min: 0, max: 300 }, duman: { min: 0, max: 1000 }, metan: { min: 0, max: 1000 }, hidrojen: { min: 0, max: 1000 },
 }
 
 const hazirSablonlar = [
