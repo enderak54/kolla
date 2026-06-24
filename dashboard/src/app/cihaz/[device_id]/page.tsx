@@ -96,9 +96,11 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const gazMetrics = ['gaz', 'gaz_lpg', 'gaz_co', 'gaz_duman', 'gaz_metan', 'gaz_hidrojen'] as const
   const gazEtiket: Record<string, string> = { gaz: 'Gaz', gaz_lpg: 'LPG', gaz_co: 'CO', gaz_duman: 'Duman', gaz_metan: 'Metan', gaz_hidrojen: 'Hidrojen' }
 
-  const sensorValues = (sensorId: string): number | undefined => {
-    const s = ekSensors.find(x => x.sensor_id === sensorId)
-    return s?.metrics.gaz ?? s?.metrics.seviye ?? undefined
+  const sensorValues = (metric: string): number | undefined => {
+    for (const s of ekSensors) {
+      if (s.metrics[metric] !== undefined) return s.metrics[metric]
+    }
+    return undefined
   }
 
   const kapiAcik = data?.kapi === true
@@ -201,7 +203,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           )}
           <p className="text-[10px] text-gray-600 text-right col-span-full">Ölçüm: {new Date(data!.timestamp).toLocaleString('tr-TR')}</p>
           {ekSensors.map(s =>
-            Object.entries(s.metrics).map(([mKey, mVal]) => {
+            Object.entries(s.metrics).filter(([mKey]) => !gazMetrics.includes(mKey as typeof gazMetrics[number])).map(([mKey, mVal]) => {
               const renkler = ['red', 'blue', 'green', 'yellow', 'orange', 'purple']
               const idx = ekSensors.indexOf(s) * 10 + Object.keys(s.metrics).indexOf(mKey)
               const renk = renkler[idx % renkler.length]
