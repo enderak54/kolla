@@ -15,6 +15,7 @@ async function query(method: string, path: string, body?: any) {
     const text = await res.text()
     throw new Error(`${res.status}: ${text}`)
   }
+  if (method === 'POST') return null
   return res.json()
 }
 
@@ -38,11 +39,14 @@ interface TelemetryData {
 export async function POST(request: Request) {
   try {
     const raw = await request.text()
+    if (!raw || raw.length === 0) {
+      return Response.json({ error: 'empty body', contentType: request.headers.get('content-type') }, { status: 400 })
+    }
+
     let body: TelemetryData
     try {
       body = JSON.parse(raw)
     } catch {
-      // CSV format fallback
       const parts = raw.split(',')
       if (parts.length >= 6) {
         body = {
