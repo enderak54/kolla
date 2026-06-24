@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     if (basTarih) filters += `&recorded_at=gte.${encodeURIComponent(basTarih)}`
     if (bitTarih) filters += `&recorded_at=lte.${encodeURIComponent(bitTarih)}`
 
-    rows = await query(`telemetry?${filters}`)
+    rows = await query(`telemetry_v?${filters}`)
 
     const kapiDurumHesapla = (prev: any, cur: any): boolean | null => {
       if (cur.kapi !== null && cur.kapi !== undefined) return cur.kapi

@@ -78,8 +78,25 @@ export async function POST(request: Request) {
       if (body[g] !== undefined) payload[g] = body[g]
     }
 
-    const supabaseUrl = SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const rpcPayload = {
+      p_device_id: deviceId, p_sicaklik: body.sicaklik, p_nem: body.nem, p_basinc: body.basinc,
+      p_ses: body.ses, p_cpu: body.cpu, p_ram: body.ram,
+      p_wifi_rssi: body.wifiRssi ?? null, p_mqtt_lokal: body.mqttLokal === 1, p_mqtt_aio: body.mqttAio === 1,
+      p_mac: body.mac || null, p_kapi: body.kapi ?? null,
+      p_gaz: body.gaz ?? null, p_gaz_lpg: body.gaz_lpg ?? null, p_gaz_co: body.gaz_co ?? null,
+      p_gaz_duman: body.gaz_duman ?? null, p_gaz_metan: body.gaz_metan ?? null, p_gaz_hidrojen: body.gaz_hidrojen ?? null,
+    }
+
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/telemetry_ekle`, {
+      method: 'POST',
+      headers: {
+        'apikey': anonKey!,
+        'Authorization': `Bearer ${anonKey!}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(rpcPayload),
+    })
 
     if (Array.isArray(body.sensors) && body.sensors.length > 0 && anonKey) {
       const now = new Date().toISOString()
@@ -90,7 +107,7 @@ export async function POST(request: Request) {
         value: s.value,
         recorded_at: now,
       }))
-      fetch(`${supabaseUrl}/rest/v1/sensor_telemetry`, {
+      fetch(`${SUPABASE_URL}/rest/v1/sensor_telemetry`, {
         method: 'POST',
         headers: {
           'apikey': anonKey,
@@ -117,7 +134,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const deviceId = url.searchParams.get('device_id') || ''
     const filter = deviceId ? `&device_id=eq.${deviceId}` : ''
-    const history: any[] = await query('GET', `telemetry?select=*${filter}&order=recorded_at.desc&limit=100`)
+    const history: any[] = await query('GET', `telemetry_v?select=*${filter}&order=recorded_at.desc&limit=100`)
 
     const mapRow = (r: any) => ({
       device_id: r.device_id,
