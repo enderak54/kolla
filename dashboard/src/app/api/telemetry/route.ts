@@ -37,18 +37,23 @@ interface TelemetryData {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json() as TelemetryData
-
-    if (body.sicaklik === undefined) {
-      const text = await request.text()
-      const parts = text.split(',')
+    const raw = await request.text()
+    let body: TelemetryData
+    try {
+      body = JSON.parse(raw)
+    } catch {
+      // CSV format fallback
+      const parts = raw.split(',')
       if (parts.length >= 6) {
-        body.sicaklik = parseFloat(parts[0])
-        body.nem = parseFloat(parts[1])
-        body.basinc = parseFloat(parts[2])
-        body.ses = parseFloat(parts[3])
-        body.cpu = parseFloat(parts[4])
-        body.ram = parseInt(parts[5])
+        body = {
+          sicaklik: parseFloat(parts[0]),
+          nem: parseFloat(parts[1]),
+          basinc: parseFloat(parts[2]),
+          ses: parseFloat(parts[3]),
+          cpu: parseFloat(parts[4]),
+          ram: parseInt(parts[5]),
+          timestamp: Date.now(),
+        }
       } else {
         return Response.json({ error: 'invalid data' }, { status: 400 })
       }
