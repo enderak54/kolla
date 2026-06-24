@@ -144,6 +144,10 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           alerts.push(`Nem uyarısı! %${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
           bildirimGonder('esik_ihlali', `Nem eşik ihlali - ${cihazAdi || deviceId}`, `%${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
         }
+        if (thresholdMap.gaz?.enabled && data?.gaz !== undefined && (data.gaz < thresholdMap.gaz.min_val || data.gaz > thresholdMap.gaz.max_val)) {
+          alerts.push(`Gaz alarmı! ${data.gaz} ppm (limit: ${thresholdMap.gaz.min_val}-${thresholdMap.gaz.max_val} ppm)`)
+          bildirimGonder('esik_ihlali', `Gaz alarmı - ${cihazAdi || deviceId}`, `${data.gaz} ppm (limit: ${thresholdMap.gaz.min_val}-${thresholdMap.gaz.max_val})`)
+        }
         if (data && !aktif) {
           alerts.push('Cihaz bağlantısı kesildi! Son veri 15sn önce.')
           bildirimGonder('cihaz_kopma', `Cihaz bağlantısı koptu - ${cihazAdi || deviceId}`, `Son veri: ${new Date(data.timestamp).toLocaleString('tr-TR')}`)
@@ -160,6 +164,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
           <SensorCard label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem} />
           <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
+          {data.gaz !== undefined && <SensorCard label="Gaz" value={`${data.gaz} ppm`} color="orange" threshold={thresholdMap.gaz} val={data.gaz} />}
           <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
           <Card label="CPU" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
           <Card label="RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} color="purple" />

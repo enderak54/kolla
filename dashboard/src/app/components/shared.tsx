@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 
 export interface TelemetryData {
   device_id?: string; mac?: string; sicaklik: number; nem: number; basinc: number; ses: number; cpu: number; ram: number
-  wifiRssi?: number; mqttLokal?: number; mqttAio?: number; timestamp: number; kapi?: boolean | null
+  wifiRssi?: number; mqttLokal?: number; mqttAio?: number; timestamp: number; kapi?: boolean | null; gaz?: number
 }
 
 export interface Threshold { metric: string; min_val: number; max_val: number; enabled: boolean }
@@ -47,7 +47,7 @@ export function ThresholdCard({ threshold, onUpdate }: { threshold: Threshold; o
   const [max, setMax] = useState(threshold.max_val)
   const [enabled, setEnabled] = useState(threshold.enabled)
   const [saving, setSaving] = useState(false)
-  const labels: Record<string, string> = { sicaklik: 'Sıcaklık °C', nem: 'Nem %', basinc: 'Basınç hPa' }
+  const labels: Record<string, string> = { sicaklik: 'Sıcaklık °C', nem: 'Nem %', basinc: 'Basınç hPa', gaz: 'Gaz ppm' }
 
   const save = async () => {
     setSaving(true)

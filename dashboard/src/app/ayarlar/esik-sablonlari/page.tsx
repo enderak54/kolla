@@ -12,8 +12,8 @@ interface EsikSablonu {
   created_at: string
 }
 
-const metricAdlari: Record<string, string> = { sicaklik: 'Sıcaklık (°C)', nem: 'Nem (%)', basinc: 'Basınç (hPa)' }
-const metricVarsayilan: Record<string, { min: number; max: number }> = { sicaklik: { min: 18, max: 30 }, nem: { min: 30, max: 70 }, basinc: { min: 980, max: 1030 } }
+const metricAdlari: Record<string, string> = { sicaklik: 'Sıcaklık (°C)', nem: 'Nem (%)', basinc: 'Basınç (hPa)', gaz: 'Gaz (ppm)' }
+const metricVarsayilan: Record<string, { min: number; max: number }> = { sicaklik: { min: 18, max: 30 }, nem: { min: 30, max: 70 }, basinc: { min: 980, max: 1030 }, gaz: { min: 0, max: 500 } }
 
 const hazirSablonlar = [
   { ad: 'Eczane', aciklama: 'İlaç saklama ortamı (8-23 arası, max 22°C)', esikler: [{ metric: 'sicaklik', min_val: 18, max_val: 22, enabled: true }, { metric: 'nem', min_val: 30, max_val: 60, enabled: true }, { metric: 'basinc', min_val: 980, max_val: 1030, enabled: false }], aktif_saat_bas: 8, aktif_saat_bit: 23 },
