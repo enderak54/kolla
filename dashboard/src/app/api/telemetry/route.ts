@@ -88,7 +88,7 @@ export async function POST(request: Request) {
       p_gaz_duman: body.gaz_duman ?? null, p_gaz_metan: body.gaz_metan ?? null, p_gaz_hidrojen: body.gaz_hidrojen ?? null,
     }
 
-    await fetch(`${SUPABASE_URL}/rest/v1/rpc/telemetry_ekle`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/rpc/telemetry_ekle2`, {
       method: 'POST',
       headers: {
         'apikey': anonKey!,
