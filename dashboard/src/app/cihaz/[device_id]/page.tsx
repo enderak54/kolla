@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react'
 import iller from '@/data/turkiye-il-ilce.json'
 import { TelemetryData, Threshold, Ayar, SensorCard, Card, ThresholdCard, MiniChart, StatusBadge, AyarSatir, SinyalGosterge, OzetKarti, AlarmPaneli, CSVExport } from '@/app/components/shared'
+import { kollaYorum } from '@/lib/gemini'
 
 interface SensorData {
   device_id: string
@@ -28,6 +29,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const [gonderildi, setGonderildi] = useState<Set<string>>(new Set())
   const [kameraSon, setKameraSon] = useState<{ url: string; captured_at: string } | null>(null)
   const [kameraAktif, setKameraAktif] = useState(false)
+  const [aiYorum, setAiYorum] = useState<string | null>(null)
+  const [aiLoading, setAiLoading] = useState(false)
 
   const bildirimGonder = async (tip: string, baslik: string, mesaj: string) => {
     const key = `${tip}-${Date.now()}`
@@ -77,6 +80,12 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
     const interval = setInterval(fetchAll, refreshMs)
     return () => clearInterval(interval)
   }, [refreshMs, deviceId])
+
+  useEffect(() => {
+    if (history.length === 0 || aiLoading || aiYorum !== null) return
+    setAiLoading(true)
+    kollaYorum(history).then(text => { setAiYorum(text); setAiLoading(false) })
+  }, [history, aiLoading, aiYorum])
 
   const aktif = data && (Date.now() - data.timestamp) < 15000
   const now = Date.now()
@@ -178,6 +187,12 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         </div>
       ) : (
         <p className="text-gray-400 mb-8">Veri bekleniyor...</p>
+      )}
+      {aiYorum && (
+        <div className="w-full max-w-4xl mb-4 p-4 rounded-2xl border border-emerald-700 bg-emerald-950/20">
+          <p className="text-sm font-semibold text-emerald-400 mb-1">🤖 Kolla Yorumu</p>
+          <p className="text-sm text-gray-300 leading-relaxed">{aiYorum}</p>
+        </div>
       )}
       {history.length > 0 && (
         <div className="w-full max-w-4xl mb-8">
