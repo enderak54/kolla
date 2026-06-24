@@ -5,13 +5,6 @@ import iller from '@/data/turkiye-il-ilce.json'
 import { TelemetryData, Threshold, Ayar, SensorCard, Card, ThresholdCard, MiniChart, StatusBadge, AyarSatir, SinyalGosterge, OzetKarti, AlarmPaneli, CSVExport } from '@/app/components/shared'
 import { kollaYorum } from '@/lib/gemini'
 
-interface SensorData {
-  device_id: string
-  sensor_id: string
-  metrics: Record<string, number>
-  history: { metric: string; value: number; recorded_at: string }[]
-}
-
 export default function CihazDetay({ params }: { params: Promise<{ device_id: string }> }) {
   const { device_id } = use(params)
   const deviceId = decodeURIComponent(device_id)
@@ -25,7 +18,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const [cihazAdi, setCihazAdi] = useState('')
   const [aktifSensörler, setAktifSensörler] = useState(0)
   const [kapiKontrol, setKapiKontrol] = useState('kapali')
-  const [ekSensors, setEkSensors] = useState<SensorData[]>([])
+  const [sensorData, setSensorData] = useState<Record<string, number>>({})
   const [gonderildi, setGonderildi] = useState<Set<string>>(new Set())
   const [kameraSon, setKameraSon] = useState<{ url: string; captured_at: string } | null>(null)
   const [kameraAktif, setKameraAktif] = useState(false)
@@ -49,12 +42,11 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [tr, tr2, tr3, ccfg, st, km, ka] = await Promise.all([
+        const [tr, tr2, tr3, ccfg, km, ka] = await Promise.all([
           fetch(`/api/telemetry?device_id=${encodeURIComponent(deviceId)}`).then(r => r.json()),
           fetch('/api/thresholds').then(r => r.json()),
           fetch('/api/ayarlar').then(r => r.json()),
           fetch(`/api/cihaz-yapilandirma?device_id=${encodeURIComponent(deviceId)}`).then(r => r.json().catch(() => ({}))),
-          fetch(`/api/sensor-telemetry?device_id=${encodeURIComponent(deviceId)}&limit=500`).then(r => r.json().catch(() => ({}))),
           fetch(`/api/kamera?device_id=${encodeURIComponent(deviceId)}&limit=1`).then(r => r.json()).catch(() => []),
           fetch('/api/ayarlar').then(r => r.json()).catch(() => []),
         ])
@@ -67,7 +59,10 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         if (Array.isArray(ccfg.sensor_config)) {
           setAktifSensörler(ccfg.sensor_config.filter((s: any) => s.aktif).length)
         }
-        if (st?.sensors) setEkSensors(st.sensors)
+        if (Array.isArray(tr3)) {
+          const a = tr3.find((x: any) => x.anahtar === `son_sensor_${deviceId}`)
+          if (a) { try { setSensorData(JSON.parse(a.deger)) } catch {} }
+        }
         if (Array.isArray(km) && km.length > 0) {
           setKameraSon({ url: `https://fpcvwfqhungfeukgophd.supabase.co/storage/v1/object/public/kamera/${km[0].storage_path}`, captured_at: km[0].captured_at })
         }
@@ -97,10 +92,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const gazEtiket: Record<string, string> = { gaz_genel: 'Gaz', lpg: 'LPG', co: 'CO', duman: 'Duman', metan: 'Metan', hidrojen: 'Hidrojen' }
 
   const sensorValues = (metric: string): number | undefined => {
-    for (const s of ekSensors) {
-      if (s.metrics[metric] !== undefined) return s.metrics[metric]
-    }
-    return undefined
+    return sensorData[metric]
   }
 
   const kapiAcik = data?.kapi === true
@@ -202,16 +194,14 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
             </div>
           )}
           <p className="text-[10px] text-gray-600 text-right col-span-full">Ölçüm: {new Date(data!.timestamp).toLocaleString('tr-TR')}</p>
-          {ekSensors.map(s =>
-            Object.entries(s.metrics).filter(([mKey]) => !gazMetrics.includes(mKey as typeof gazMetrics[number])).map(([mKey, mVal]) => {
+          {Object.entries(sensorData).filter(([k]) => !gazMetrics.includes(k as typeof gazMetrics[number])).map(([k, v]) => {
               const renkler = ['red', 'blue', 'green', 'yellow', 'orange', 'purple']
-              const idx = ekSensors.indexOf(s) * 10 + Object.keys(s.metrics).indexOf(mKey)
+              const idx = Object.keys(sensorData).indexOf(k)
               const renk = renkler[idx % renkler.length]
               const birim: Record<string, string> = { sicaklik: '°C', nem: '%', basinc: 'hPa', ses: '', seviye: '%', kapi: '', gaz_genel: 'ppm', lpg: 'ppm', co: 'ppm', duman: 'ppm', metan: 'ppm', hidrojen: 'ppm' }
               const etiket: Record<string, string> = { sicaklik: 'Sıcaklık', nem: 'Nem', basinc: 'Basınç', ses: 'Ses', seviye: 'Seviye', kapi: 'Kapı', gaz_genel: 'Gaz', lpg: 'LPG', co: 'CO', duman: 'Duman', metan: 'Metan', hidrojen: 'Hidrojen' }
-              return <Card key={`${s.sensor_id}-${mKey}`} label={`${s.sensor_id} ${etiket[mKey] || mKey}`} value={`${mVal}${birim[mKey] || ''}`} color={renk} />
-            })
-          )}
+              return <Card key={k} label={`${etiket[k] || k}`} value={`${v}${birim[k] || ''}`} color={renk} />
+          })}
         </div>
         </div>
       ) : (

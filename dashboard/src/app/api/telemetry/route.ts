@@ -86,23 +86,20 @@ export async function POST(request: Request) {
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (Array.isArray(body.sensors) && body.sensors.length > 0 && anonKey) {
-      const now = new Date().toISOString()
-      const sensorRows = body.sensors.map((s: any) => ({
-        device_id: deviceId,
-        sensor_id: s.sensor_id,
-        metric: s.metric,
-        value: s.value,
-        recorded_at: now,
-      }))
-      fetch(`${SUPABASE_URL}/rest/v1/sensor_telemetry`, {
+      const sensorObj: Record<string, any> = {}
+      for (const s of body.sensors) {
+        const key = s.metric
+        sensorObj[key] = s.value
+      }
+      fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
         method: 'POST',
         headers: {
           'apikey': anonKey,
           'Authorization': `Bearer ${anonKey}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=minimal',
+          'Prefer': 'resolution=merge-duplicates',
         },
-        body: JSON.stringify(sensorRows),
+        body: JSON.stringify({ anahtar: `son_sensor_${deviceId}`, deger: JSON.stringify(sensorObj), kategori: 'sensor' }),
       }).catch(() => {})
     }
 

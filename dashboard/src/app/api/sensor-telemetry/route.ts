@@ -6,16 +6,6 @@ const headers = {
   'Content-Type': 'application/json',
 }
 
-async function supabase(method: string, path: string, body?: any) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    method,
-    headers: { ...headers, Prefer: 'return=representation' },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-  if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`) }
-  return method === 'DELETE' ? null : res.json()
-}
-
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -24,17 +14,19 @@ export async function POST(request: Request) {
     if (!device_id || !Array.isArray(sensors) || sensors.length === 0)
       return Response.json({ error: 'device_id ve sensors[] gerekli' }, { status: 400 })
 
-    const now = new Date().toISOString()
-    const rows = sensors.map((s: any) => ({
-      device_id,
-      sensor_id: s.sensor_id,
-      metric: s.metric,
-      value: s.value,
-      recorded_at: now,
-    }))
+    const sensorObj: Record<string, number> = {}
+    for (const s of sensors) {
+      sensorObj[s.metric] = s.value
+    }
 
-    await supabase('POST', 'sensor_telemetry', rows)
-    return Response.json({ ok: true, kayit: rows.length })
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
+      method: 'POST',
+      headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
+      body: JSON.stringify({ anahtar: `son_sensor_${device_id}`, deger: JSON.stringify(sensorObj), kategori: 'sensor' }),
+    })
+    if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`) }
+
+    return Response.json({ ok: true, sensors: sensorObj })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
   }
@@ -44,28 +36,22 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
     const deviceId = url.searchParams.get('device_id')
-    const sensorId = url.searchParams.get('sensor_id')
-    const limit = url.searchParams.get('limit') || '100'
 
-    let filter = `select=*&order=recorded_at.desc&limit=${limit}`
-    if (deviceId) filter += `&device_id=eq.${encodeURIComponent(deviceId)}`
-    if (sensorId) filter += `&sensor_id=eq.${encodeURIComponent(sensorId)}`
+    let filter = `select=*`
+    if (deviceId) filter += `&anahtar=eq.son_sensor_${encodeURIComponent(deviceId)}`
 
-    const rows: any[] = await supabase('GET', `sensor_telemetry?${filter}`)
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar?${filter}`, {
+      headers,
+    })
+    if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`) }
 
-    const groups: Record<string, any> = {}
-    const reversed = [...rows].reverse()
-    for (const r of reversed) {
-      const key = `${r.device_id}-${r.sensor_id}`
-      if (!groups[key]) groups[key] = { device_id: r.device_id, sensor_id: r.sensor_id, metrics: {}, history: [] }
-      groups[key].metrics[r.metric] = r.value
-      groups[key].history.push({ metric: r.metric, value: r.value, recorded_at: r.recorded_at })
+    const rows: any[] = await res.json()
+    const obj: any = {}
+    for (const r of rows) {
+      try { obj[r.anahtar.replace('son_sensor_', '')] = JSON.parse(r.deger) } catch {}
     }
 
-    return Response.json({
-      sensors: Object.values(groups),
-      raw: reversed,
-    })
+    return Response.json(obj)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
   }
