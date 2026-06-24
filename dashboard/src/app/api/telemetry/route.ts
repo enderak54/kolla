@@ -32,7 +32,6 @@ interface TelemetryData {
   mqttAio?: number
   timestamp: number
   kapi?: boolean
-  gaz?: number; gaz_lpg?: number; gaz_co?: number; gaz_duman?: number; gaz_metan?: number; gaz_hidrojen?: number
   sensors?: { sensor_id: string; metric: string; value: number }[]
 }
 
@@ -74,29 +73,8 @@ export async function POST(request: Request) {
     }
     if (body.mac) payload.mac = body.mac
     if (body.kapi !== undefined) payload.kapi = body.kapi
-    for (const g of ['gaz', 'gaz_lpg', 'gaz_co', 'gaz_duman', 'gaz_metan', 'gaz_hidrojen'] as const) {
-      if (body[g] !== undefined) payload[g] = body[g]
-    }
 
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    const rpcPayload = {
-      p_device_id: deviceId, p_sicaklik: body.sicaklik, p_nem: body.nem, p_basinc: body.basinc,
-      p_ses: body.ses, p_cpu: body.cpu, p_ram: body.ram,
-      p_wifi_rssi: body.wifiRssi ?? null, p_mqtt_lokal: body.mqttLokal === 1, p_mqtt_aio: body.mqttAio === 1,
-      p_mac: body.mac || null, p_kapi: body.kapi ?? null,
-      p_gaz: body.gaz ?? null, p_gaz_lpg: body.gaz_lpg ?? null, p_gaz_co: body.gaz_co ?? null,
-      p_gaz_duman: body.gaz_duman ?? null, p_gaz_metan: body.gaz_metan ?? null, p_gaz_hidrojen: body.gaz_hidrojen ?? null,
-    }
-
-    await fetch(`${SUPABASE_URL}/rest/v1/rpc/telemetry_ekle2`, {
-      method: 'POST',
-      headers: {
-        'apikey': anonKey!,
-        'Authorization': `Bearer ${anonKey!}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(rpcPayload),
-    })
 
     if (Array.isArray(body.sensors) && body.sensors.length > 0 && anonKey) {
       const now = new Date().toISOString()
@@ -134,7 +112,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const deviceId = url.searchParams.get('device_id') || ''
     const filter = deviceId ? `&device_id=eq.${deviceId}` : ''
-    const history: any[] = await query('GET', `telemetry_v?select=*${filter}&order=recorded_at.desc&limit=100`)
+    const history: any[] = await query('GET', `telemetry?select=*${filter}&order=recorded_at.desc&limit=100`)
 
     const mapRow = (r: any) => ({
       device_id: r.device_id,
@@ -150,8 +128,6 @@ export async function GET(request: Request) {
       mqttAio: r.mqtt_aio ? 1 : 0,
       timestamp: new Date(r.recorded_at).getTime(),
       kapi: r.kapi ?? null,
-      gaz: r.gaz ?? undefined, gaz_lpg: r.gaz_lpg ?? undefined, gaz_co: r.gaz_co ?? undefined,
-      gaz_duman: r.gaz_duman ?? undefined, gaz_metan: r.gaz_metan ?? undefined, gaz_hidrojen: r.gaz_hidrojen ?? undefined,
     })
 
     const reversed = [...history].reverse().map(mapRow)

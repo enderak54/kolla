@@ -96,6 +96,11 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const gazMetrics = ['gaz', 'gaz_lpg', 'gaz_co', 'gaz_duman', 'gaz_metan', 'gaz_hidrojen'] as const
   const gazEtiket: Record<string, string> = { gaz: 'Gaz', gaz_lpg: 'LPG', gaz_co: 'CO', gaz_duman: 'Duman', gaz_metan: 'Metan', gaz_hidrojen: 'Hidrojen' }
 
+  const sensorValues = (sensorId: string): number | undefined => {
+    const s = ekSensors.find(x => x.sensor_id === sensorId)
+    return s?.metrics.gaz ?? s?.metrics.seviye ?? undefined
+  }
+
   const kapiAcik = data?.kapi === true
   let kapiDegisimSayisi = 0
   let oncekiKapi: boolean | null = null
@@ -147,14 +152,17 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           alerts.push(`Nem uyarısı! %${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
           bildirimGonder('esik_ihlali', `Nem eşik ihlali - ${cihazAdi || deviceId}`, `%${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
         }
-        if (thresholdMap.gaz?.enabled && data?.gaz !== undefined && (data.gaz < thresholdMap.gaz.min_val || data.gaz > thresholdMap.gaz.max_val)) {
-          alerts.push(`Gaz alarmı! ${data.gaz} ppm (limit: ${thresholdMap.gaz.min_val}-${thresholdMap.gaz.max_val} ppm)`)
-          bildirimGonder('esik_ihlali', `Gaz alarmı - ${cihazAdi || deviceId}`, `${data.gaz} ppm (limit: ${thresholdMap.gaz.min_val}-${thresholdMap.gaz.max_val})`)
+        if (thresholdMap.gaz?.enabled) {
+          const gVal = sensorValues('mq2')
+          if (gVal != null && (gVal < thresholdMap.gaz.min_val || gVal > thresholdMap.gaz.max_val)) {
+            alerts.push(`Gaz alarmı! ${gVal} ppm (limit: ${thresholdMap.gaz.min_val}-${thresholdMap.gaz.max_val} ppm)`)
+            bildirimGonder('esik_ihlali', `Gaz alarmı - ${cihazAdi || deviceId}`, `${gVal} ppm (limit: ${thresholdMap.gaz.min_val}-${thresholdMap.gaz.max_val})`)
+          }
         }
         for (const gm of gazMetrics) {
           if (gm === 'gaz') continue
           const t = thresholdMap[gm]
-          const val = (data as any)?.[gm] as number | undefined
+          const val = sensorValues(gm)
           if (t?.enabled && val != null && (val < t.min_val || val > t.max_val)) {
             alerts.push(`${gazEtiket[gm]} alarmı! ${val} ppm (limit: ${t.min_val}-${t.max_val} ppm)`)
             bildirimGonder('esik_ihlali', `${gazEtiket[gm]} alarmı - ${cihazAdi || deviceId}`, `${val} ppm (limit: ${t.min_val}-${t.max_val})`)
@@ -176,8 +184,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
           <SensorCard label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem} />
           <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
-          {gazMetrics.filter(gm => (data as any)[gm] != null).map(gm => (
-            <SensorCard key={gm} label={gazEtiket[gm]} value={`${(data as any)[gm]} ppm`} color="orange" threshold={thresholdMap[gm]} val={(data as any)[gm] as number} />
+          {gazMetrics.filter(gm => sensorValues(gm) != null).map(gm => (
+            <SensorCard key={gm} label={gazEtiket[gm]} value={`${sensorValues(gm)} ppm`} color="orange" threshold={thresholdMap[gm]} val={sensorValues(gm)!} />
           ))}
           <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
           <Card label="CPU" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
