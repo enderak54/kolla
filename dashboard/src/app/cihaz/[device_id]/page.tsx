@@ -181,35 +181,41 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       })()}
       {data ? (
         <div className="w-full max-w-4xl mb-8">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-2">
-          <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
-          <SensorCard label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem} />
-          <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
-          {gazMetrics.filter(gm => sensorValues(gm) != null).map(gm => (
-            <SensorCard key={gm} label={gazEtiket[gm]} value={`${sensorValues(gm)} ppm`} color="orange" threshold={thresholdMap[gm]} val={sensorValues(gm)!} />
-          ))}
-          <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
-          <Card label="CPU" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
-          <Card label="RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} color="purple" />
-          {kapiKontrol !== 'kapali' && (
-            <div className={`rounded-2xl p-5 flex flex-col items-center shadow-lg border col-span-1 ${kapiAcik ? 'border-red-500 bg-red-950/40' : 'border-emerald-500 bg-emerald-950/30'}`}>
-              <span className="text-sm text-gray-400 mb-1">Kapı ({kapiModEtiket[kapiKontrol]})</span>
-              <span className={`text-2xl font-semibold ${kapiAcik ? 'text-red-400' : 'text-emerald-300'}`}>
-                {kapiAcik ? 'Açık' : 'Kapalı'}
-              </span>
-              {kapiDegisimSayisi > 0 && <span className="text-[10px] text-gray-500 mt-1">{kapiDegisimSayisi} açılma</span>}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-2">
+            <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
+            <SensorCard label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem} />
+            <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
+            <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
+            <div className="bg-gray-800 rounded-2xl p-3 border border-gray-700 flex flex-col gap-1">
+              <span className="text-[10px] text-gray-500 uppercase tracking-wide">Gaz</span>
+              {gazMetrics.filter(gm => sensorValues(gm) != null).map(gm => (
+                <div key={gm} className="flex justify-between items-center">
+                  <span className="text-xs text-gray-400">{gazEtiket[gm]}</span>
+                  <span className="text-sm font-semibold" style={{color: {gaz_genel:'#F97316',lpg:'#A855F7',co:'#EF4444',duman:'#6B7280',metan:'#22C55E',hidrojen:'#3B82F6'}[gm]}}>{sensorValues(gm)}<span className="text-[10px] text-gray-600 ml-0.5">ppm</span></span>
+                </div>
+              ))}
+              {gazMetrics.every(gm => sensorValues(gm) == null) && <span className="text-xs text-gray-500">Veri yok</span>}
             </div>
-          )}
-          <p className="text-[10px] text-gray-600 text-right col-span-full">Ölçüm: {new Date(data!.timestamp).toLocaleString('tr-TR')}</p>
-          {Object.entries(sensorData).filter(([k]) => !gazMetrics.includes(k as typeof gazMetrics[number])).map(([k, v]) => {
-              const renkler = ['red', 'blue', 'green', 'yellow', 'orange', 'purple']
-              const idx = Object.keys(sensorData).indexOf(k)
-              const renk = renkler[idx % renkler.length]
-              const birim: Record<string, string> = { sicaklik: '°C', nem: '%', basinc: 'hPa', ses: '', seviye: '%', kapi: '', gaz_genel: 'ppm', lpg: 'ppm', co: 'ppm', duman: 'ppm', metan: 'ppm', hidrojen: 'ppm' }
-              const etiket: Record<string, string> = { sicaklik: 'Sıcaklık', nem: 'Nem', basinc: 'Basınç', ses: 'Ses', seviye: 'Seviye', kapi: 'Kapı', gaz_genel: 'Gaz', lpg: 'LPG', co: 'CO', duman: 'Duman', metan: 'Metan', hidrojen: 'Hidrojen' }
-              return <Card key={k} label={`${etiket[k] || k}`} value={`${v}${birim[k] || ''}`} color={renk} />
-          })}
-        </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+            <Card label="CPU" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
+            <Card label="RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} color="purple" />
+            {kapiKontrol !== 'kapali' && (
+              <div className={`rounded-2xl p-4 flex flex-col items-center shadow-lg border ${kapiAcik ? 'border-red-500 bg-red-950/40' : 'border-emerald-500 bg-emerald-950/30'}`}>
+                <span className="text-xs text-gray-400 mb-0.5">Kapı ({kapiModEtiket[kapiKontrol]})</span>
+                <span className={`text-lg font-semibold ${kapiAcik ? 'text-red-400' : 'text-emerald-300'}`}>{kapiAcik ? 'Açık' : 'Kapalı'}</span>
+                {kapiDegisimSayisi > 0 && <span className="text-[10px] text-gray-500">{kapiDegisimSayisi} açılma</span>}
+              </div>
+            )}
+            {Object.entries(sensorData).filter(([k]) => !gazMetrics.includes(k as typeof gazMetrics[number]) && !['sicaklik','nem','basinc','ses','cpu','ram','kapi'].includes(k)).map(([k, v]) => {
+              const renkler = ['red','blue','green','yellow','orange','purple']
+              const renk = renkler[Object.keys(sensorData).indexOf(k) % renkler.length]
+              const birim: Record<string, string> = { seviye: '%' }
+              const etiket: Record<string, string> = { seviye: 'Seviye' }
+              return <Card key={k} label={etiket[k] || k} value={`${v}${birim[k] || ''}`} color={renk} />
+            })}
+          </div>
+          <p className="text-[10px] text-gray-600 text-right">Ölçüm: {new Date(data!.timestamp).toLocaleString('tr-TR')}</p>
         </div>
       ) : (
         <p className="text-gray-400 mb-8">Veri bekleniyor...</p>
