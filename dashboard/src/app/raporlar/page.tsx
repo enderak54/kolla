@@ -17,6 +17,7 @@ interface TelemetryRow {
   mqtt_lokal: number
   mqtt_aio: number
   kapi?: boolean | null
+  gaz?: number; gaz_lpg?: number; gaz_co?: number; gaz_duman?: number; gaz_metan?: number; gaz_hidrojen?: number
 }
 
 interface Birim {

@@ -32,6 +32,7 @@ interface TelemetryData {
   mqttAio?: number
   timestamp: number
   kapi?: boolean
+  gaz?: number; gaz_lpg?: number; gaz_co?: number; gaz_duman?: number; gaz_metan?: number; gaz_hidrojen?: number
   sensors?: { sensor_id: string; metric: string; value: number }[]
 }
 
@@ -73,6 +74,9 @@ export async function POST(request: Request) {
     }
     if (body.mac) payload.mac = body.mac
     if (body.kapi !== undefined) payload.kapi = body.kapi
+    for (const g of ['gaz', 'gaz_lpg', 'gaz_co', 'gaz_duman', 'gaz_metan', 'gaz_hidrojen'] as const) {
+      if (body[g] !== undefined) payload[g] = body[g]
+    }
 
     const supabaseUrl = SUPABASE_URL
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -129,6 +133,8 @@ export async function GET(request: Request) {
       mqttAio: r.mqtt_aio ? 1 : 0,
       timestamp: new Date(r.recorded_at).getTime(),
       kapi: r.kapi ?? null,
+      gaz: r.gaz ?? undefined, gaz_lpg: r.gaz_lpg ?? undefined, gaz_co: r.gaz_co ?? undefined,
+      gaz_duman: r.gaz_duman ?? undefined, gaz_metan: r.gaz_metan ?? undefined, gaz_hidrojen: r.gaz_hidrojen ?? undefined,
     })
 
     const reversed = [...history].reverse().map(mapRow)

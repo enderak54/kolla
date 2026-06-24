@@ -68,7 +68,7 @@ export async function GET() {
         ad: info?.name || null,
         konum: info?.location || null,
         kayitli: kayitliSet.has(device_id),
-        esikVar: thresholdSet.has(`${device_id}:sicaklik`) || thresholdSet.has(`${device_id}:gaz`),
+        esikVar: ['sicaklik', 'gaz', 'gaz_lpg', 'gaz_co', 'gaz_duman', 'gaz_metan', 'gaz_hidrojen'].some(m => thresholdSet.has(`${device_id}:${m}`)),
         aktif: (Date.now() - data.sonGuncelleme) < 15000,
       }
     })

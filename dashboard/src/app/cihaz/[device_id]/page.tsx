@@ -93,6 +93,9 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const thresholdMap = Object.fromEntries(thresholds.map(t => [t.metric, t]))
   const alertSicaklik = thresholdMap.sicaklik?.enabled && data && (data.sicaklik < thresholdMap.sicaklik.min_val || data.sicaklik > thresholdMap.sicaklik.max_val)
 
+  const gazMetrics = ['gaz', 'gaz_lpg', 'gaz_co', 'gaz_duman', 'gaz_metan', 'gaz_hidrojen'] as const
+  const gazEtiket: Record<string, string> = { gaz: 'Gaz', gaz_lpg: 'LPG', gaz_co: 'CO', gaz_duman: 'Duman', gaz_metan: 'Metan', gaz_hidrojen: 'Hidrojen' }
+
   const kapiAcik = data?.kapi === true
   let kapiDegisimSayisi = 0
   let oncekiKapi: boolean | null = null
@@ -148,6 +151,15 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           alerts.push(`Gaz alarmı! ${data.gaz} ppm (limit: ${thresholdMap.gaz.min_val}-${thresholdMap.gaz.max_val} ppm)`)
           bildirimGonder('esik_ihlali', `Gaz alarmı - ${cihazAdi || deviceId}`, `${data.gaz} ppm (limit: ${thresholdMap.gaz.min_val}-${thresholdMap.gaz.max_val})`)
         }
+        for (const gm of gazMetrics) {
+          if (gm === 'gaz') continue
+          const t = thresholdMap[gm]
+          const val = (data as any)?.[gm] as number | undefined
+          if (t?.enabled && val != null && (val < t.min_val || val > t.max_val)) {
+            alerts.push(`${gazEtiket[gm]} alarmı! ${val} ppm (limit: ${t.min_val}-${t.max_val} ppm)`)
+            bildirimGonder('esik_ihlali', `${gazEtiket[gm]} alarmı - ${cihazAdi || deviceId}`, `${val} ppm (limit: ${t.min_val}-${t.max_val})`)
+          }
+        }
         if (data && !aktif) {
           alerts.push('Cihaz bağlantısı kesildi! Son veri 15sn önce.')
           bildirimGonder('cihaz_kopma', `Cihaz bağlantısı koptu - ${cihazAdi || deviceId}`, `Son veri: ${new Date(data.timestamp).toLocaleString('tr-TR')}`)
@@ -164,7 +176,9 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
           <SensorCard label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem} />
           <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
-          {data.gaz !== undefined && <SensorCard label="Gaz" value={`${data.gaz} ppm`} color="orange" threshold={thresholdMap.gaz} val={data.gaz} />}
+          {gazMetrics.filter(gm => (data as any)[gm] != null).map(gm => (
+            <SensorCard key={gm} label={gazEtiket[gm]} value={`${(data as any)[gm]} ppm`} color="orange" threshold={thresholdMap[gm]} val={(data as any)[gm] as number} />
+          ))}
           <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
           <Card label="CPU" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
           <Card label="RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} color="purple" />
