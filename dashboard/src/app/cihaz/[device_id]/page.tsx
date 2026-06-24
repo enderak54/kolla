@@ -19,6 +19,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const [aktifSensörler, setAktifSensörler] = useState(0)
   const [kapiKontrol, setKapiKontrol] = useState('kapali')
   const [sensorData, setSensorData] = useState<Record<string, number>>({})
+  const [sensorGecmis, setSensorGecmis] = useState<any[]>([])
   const [gonderildi, setGonderildi] = useState<Set<string>>(new Set())
   const [kameraSon, setKameraSon] = useState<{ url: string; captured_at: string } | null>(null)
   const [kameraAktif, setKameraAktif] = useState(false)
@@ -62,6 +63,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         if (Array.isArray(tr3)) {
           const a = tr3.find((x: any) => x.anahtar === `son_sensor_${deviceId}`)
           if (a) { try { setSensorData(JSON.parse(a.deger)) } catch {} }
+          const g = tr3.find((x: any) => x.anahtar === `sensor_gecmis_${deviceId}`)
+          if (g) { try { const arr = JSON.parse(g.deger); if (Array.isArray(arr)) setSensorGecmis(arr) } catch {} }
         }
         if (Array.isArray(km) && km.length > 0) {
           setKameraSon({ url: `https://fpcvwfqhungfeukgophd.supabase.co/storage/v1/object/public/kamera/${km[0].storage_path}`, captured_at: km[0].captured_at })
@@ -145,6 +148,10 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         if (thresholdMap.nem?.enabled && data && (data.nem < thresholdMap.nem.min_val || data.nem > thresholdMap.nem.max_val)) {
           alerts.push(`Nem uyarısı! %${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
           bildirimGonder('esik_ihlali', `Nem eşik ihlali - ${cihazAdi || deviceId}`, `%${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
+        }
+        if (thresholdMap.ses?.enabled && data && (data.ses < thresholdMap.ses.min_val || data.ses > thresholdMap.ses.max_val)) {
+          alerts.push(`Mikrofon uyarısı! ${data.ses.toFixed(3)} (limit: ${thresholdMap.ses.min_val}-${thresholdMap.ses.max_val})`)
+          bildirimGonder('esik_ihlali', `Mikrofon eşik ihlali - ${cihazAdi || deviceId}`, `${data.ses.toFixed(3)} (limit: ${thresholdMap.ses.min_val}-${thresholdMap.ses.max_val})`)
         }
         if (thresholdMap.gaz_genel?.enabled) {
           const gVal = sensorValues('gaz_genel')
@@ -258,6 +265,19 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
               </div>
             ))}
           </div>
+          {sensorGecmis.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-gray-400 mb-3">Sensör Geçmişi (MQ-2)</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {gazMetrics.filter(gm => sensorGecmis.some((e: any) => e[gm] != null)).map(gm => {
+                  const renkler: Record<string, string> = { gaz_genel: '#F97316', lpg: '#A855F7', co: '#EF4444', duman: '#6B7280', metan: '#22C55E', hidrojen: '#3B82F6' }
+                  return (
+                    <MiniChart key={gm} data={sensorGecmis} dataKey={gm} color={renkler[gm] || '#F97316'} name={`${gazEtiket[gm]} ppm`} />
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
       {kameraAktif && (

@@ -88,19 +88,33 @@ export async function POST(request: Request) {
     if (Array.isArray(body.sensors) && body.sensors.length > 0 && anonKey) {
       const sensorObj: Record<string, any> = {}
       for (const s of body.sensors) {
-        const key = s.metric
-        sensorObj[key] = s.value
+        sensorObj[s.metric] = s.value
       }
+      const anonHeaders = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}`, 'Content-Type': 'application/json' }
+      // Save latest
       fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
         method: 'POST',
-        headers: {
-          'apikey': anonKey,
-          'Authorization': `Bearer ${anonKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'resolution=merge-duplicates',
-        },
+        headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
         body: JSON.stringify({ anahtar: `son_sensor_${deviceId}`, deger: JSON.stringify(sensorObj), kategori: 'sensor' }),
       }).catch(() => {})
+      // Append to history
+      ;(async () => {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar?anahtar=eq.${encodeURIComponent('sensor_gecmis_' + deviceId)}&select=deger`, { headers: anonHeaders })
+          let gecmis: any[] = []
+          if (res.ok) {
+            const rows = await res.json()
+            if (rows.length > 0) try { gecmis = JSON.parse(rows[0].deger) } catch {}
+          }
+          gecmis.push({ t: new Date().toISOString(), ...sensorObj })
+          if (gecmis.length > 500) gecmis = gecmis.slice(-500)
+          await fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
+            method: 'POST',
+            headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
+            body: JSON.stringify({ anahtar: `sensor_gecmis_${deviceId}`, deger: JSON.stringify(gecmis), kategori: 'sensor' }),
+          })
+        } catch {}
+      })()
     }
 
     await query('POST', 'telemetry', payload)
