@@ -96,7 +96,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const secilenSehir = ayarlar.find(a => a.anahtar === 'sehir')?.deger || ''
   const ilceListesi = iller.iller.find(i => i.il === secilenSehir)?.ilceler ?? []
   const secenekler: Record<string, string[]> = {
-    ulkeler: ['Türkiye', 'Almanya', 'ABD', 'İngiltere', 'Fransa', 'Japonya', 'Çin', 'Rusya'],
+    ulkeler: ['Türkiye', 'Azerbaycan', 'Kazakistan', 'Kırgızistan', 'Özbekistan', 'Türkmenistan', 'KKTC'],
     bolge: ['İç Anadolu', 'Marmara', 'Ege', 'Akdeniz', 'Karadeniz', 'Doğu Anadolu', 'Güneydoğu Anadolu'],
     sehir: iller.iller.map(i => i.il),
     semt: ilceListesi,
