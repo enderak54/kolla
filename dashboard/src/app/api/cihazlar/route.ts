@@ -43,6 +43,7 @@ export async function GET() {
 
     for (const r of rows) {
       const id = r.device_id || 'BILINMEYEN'
+      if (id === 'BILINMEYEN') continue
       if (!deviceMap.has(id)) {
         deviceMap.set(id, {
           sonGuncelleme: new Date(r.recorded_at).getTime(),
@@ -53,10 +54,12 @@ export async function GET() {
           mqttAio: r.mqtt_aio,
           kayitSayisi: 1,
           mac: r.mac || null,
+          gazGenel: r.gaz_genel ?? null,
         })
       } else {
         const d = deviceMap.get(id)!
         d.kayitSayisi++
+        if (r.gaz_genel != null) d.gazGenel = r.gaz_genel
       }
     }
 

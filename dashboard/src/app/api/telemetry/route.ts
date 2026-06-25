@@ -33,6 +33,7 @@ interface TelemetryData {
   mqttAio?: number
   timestamp: number
   kapi?: boolean
+  gaz_genel?: number
   sensors?: { sensor_id: string; metric: string; value: number }[]
 }
 
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
           ram: parseInt(parts[5]),
           timestamp: Date.now(),
         }
+        if (parts.length >= 8) body.gaz_genel = parseInt(parts[7])
       } else {
         return Response.json({ error: 'invalid data' }, { status: 400 })
       }
@@ -82,6 +84,7 @@ export async function POST(request: Request) {
     }
     if (body.mac) payload.mac = body.mac
     if (body.kapi !== undefined) payload.kapi = body.kapi
+    if (body.gaz_genel !== undefined) payload.gaz_genel = body.gaz_genel
 
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -101,22 +104,22 @@ export async function POST(request: Request) {
       fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
         method: 'POST',
         headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
-        body: JSON.stringify({ anahtar: `son_sensor_${deviceId}`, deger: JSON.stringify(sensorObj), kategori: 'sensor' }),
+        body: JSON.stringify({ key: `son_sensor_${deviceId}`, value: JSON.stringify(sensorObj), type: 'sensor' }),
       }).catch(() => {})
       ;(async () => {
         try {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar?anahtar=eq.${encodeURIComponent('sensor_gecmis_' + deviceId)}&select=deger`, { headers: anonHeaders })
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar?key=eq.${encodeURIComponent('sensor_gecmis_' + deviceId)}&select=value`, { headers: anonHeaders })
           let gecmis: any[] = []
           if (res.ok) {
             const rows = await res.json()
-            if (rows.length > 0) try { gecmis = JSON.parse(rows[0].deger) } catch {}
+            if (rows.length > 0) try { gecmis = JSON.parse(rows[0].value) } catch {}
           }
           gecmis.push({ t: new Date().toISOString(), ...sensorObj })
           if (gecmis.length > 500) gecmis = gecmis.slice(-500)
           await fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
             method: 'POST',
             headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
-            body: JSON.stringify({ anahtar: `sensor_gecmis_${deviceId}`, deger: JSON.stringify(gecmis), kategori: 'sensor' }),
+            body: JSON.stringify({ key: `sensor_gecmis_${deviceId}`, value: JSON.stringify(gecmis), type: 'sensor' }),
           })
         } catch {}
       })()
@@ -153,6 +156,7 @@ export async function GET(request: Request) {
       mqttAio: r.mqtt_aio ? 1 : 0,
       timestamp: new Date(r.recorded_at).getTime(),
       kapi: r.kapi ?? null,
+      gaz_genel: r.gaz_genel ?? null,
     })
 
     const reversed = [...history].reverse().map(mapRow)

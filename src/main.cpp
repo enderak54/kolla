@@ -18,6 +18,7 @@
 #define SDA_PIN      5
 #define SCL_PIN      6
 #define MQ2_PIN      10
+#define MQ2_AO_PIN   1
 #define RELAY_PIN    3
 #define I2S_WS       4
 #define I2S_SCK      7
@@ -89,6 +90,7 @@ float basinc     = 0;
 float cpuIsi     = 0;
 float sesSeviye  = 0;
 uint32_t bosRam  = 0;
+int    gazGenel  = 0;
 
 // --- I2S Baslat ---
 bool i2sBaslat() {
@@ -253,7 +255,7 @@ void oledGuncelle() {
 
     if (millis() - tSon_ekranSayfa >= Z_SAYFA) {
         tSon_ekranSayfa = millis();
-        ekranSayfa = (ekranSayfa + 1) % 3;
+        ekranSayfa = (ekranSayfa + 1) % 4;
     }
 
     u8g2.clearBuffer();
@@ -267,9 +269,12 @@ void oledGuncelle() {
     } else if (ekranSayfa == 1) {
         etiket = "NEM";
         snprintf(deger, sizeof(deger), "%.0f", nem);
-    } else {
+    } else if (ekranSayfa == 2) {
         etiket = "BASINC";
         snprintf(deger, sizeof(deger), "%.0f", basinc);
+    } else {
+        etiket = "MQ-2";
+        snprintf(deger, sizeof(deger), "%d", gazGenel);
     }
 
     u8g2.setFont(u8g2_font_ncenB08_tr);
@@ -364,8 +369,9 @@ void sensorOku() {
     sesSeviye = sesOkuRMS();
     cpuIsi   = cpuIsiOku();
     bosRam   = ESP.getFreeHeap();
-    Serial.printf("[SENSOR] %.1fC %.0f%% %.1fhPa Ses:%.2f CPU:%.1fC RAM:%u\n",
-                  sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam);
+    gazGenel = analogRead(MQ2_AO_PIN);
+    Serial.printf("[SENSOR] %.1fC %.0f%% %.1fhPa Ses:%.2f CPU:%.1fC RAM:%u Gaz:%d\n",
+                  sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam, gazGenel);
 
     if (bosRam < 30720) esp_restart();
     if (cpuIsi >= 75.0) esp_restart();
@@ -375,8 +381,8 @@ void sensorOku() {
 void lokalMQTTGonder() {
     if (!lokalMQTT.connected()) return;
     char payload[160];
-    snprintf(payload, sizeof(payload), "%s,%.1f,%.1f,%.1f,%.2f,%.1f,%u",
-             cihazID, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam);
+    snprintf(payload, sizeof(payload), "%s,%.1f,%.1f,%.1f,%.2f,%.1f,%u,%d",
+             cihazID, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam, gazGenel);
     lokalMQTT.publish(LOKAL_TOPIC_TELEM, payload);
 }
 
@@ -393,11 +399,11 @@ void vercelGonder() {
     HTTPClient http;
     http.begin(VERCEL_API_URL);
     http.addHeader("Content-Type", "application/json");
-    char json[400];
+    char json[512];
     snprintf(json, sizeof(json),
-             "{\"device_id\":\"%s\",\"mac\":\"%s\",\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d}",
+             "{\"device_id\":\"%s\",\"mac\":\"%s\",\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d,\"gaz_genel\":%d}",
              cihazID, cihazMAC, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam,
-             WiFi.RSSI(), lokalMQTT.connected() ? 1 : 0, aioMQTT.connected() ? 1 : 0);
+             WiFi.RSSI(), lokalMQTT.connected() ? 1 : 0, aioMQTT.connected() ? 1 : 0, gazGenel);
     int code = http.POST(json);
     if (code >= 200 && code < 300) {
         Serial.printf("[VERCEL] Veri gonderildi: %d\n", code);
@@ -563,6 +569,8 @@ void setup() {
 
     bmeBaslat();
     i2sBaslat();
+    analogReadResolution(12);
+    analogSetPinAttenuation(MQ2_AO_PIN, ADC_11db);
 
     wifiBaglan();
 
