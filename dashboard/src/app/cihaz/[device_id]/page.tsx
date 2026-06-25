@@ -25,6 +25,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const [kameraAktif, setKameraAktif] = useState(false)
   const [aiYorum, setAiYorum] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [gazSensorTip, setGazSensorTip] = useState('MQ-2')
 
   const bildirimGonder = async (tip: string, baslik: string, mesaj: string) => {
     const key = `${tip}-${Date.now()}`
@@ -38,6 +39,17 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       })
     } catch {}
     setTimeout(() => setGonderildi(prev => { const n = new Set(prev); n.delete(key); return n }), 300000)
+  }
+
+  const gazSensorTipDegistir = async (tip: string) => {
+    setGazSensorTip(tip)
+    try {
+      await fetch('/api/ayarlar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anahtar: `gaz_sensor_tip_${deviceId}`, deger: tip, kategori: 'sensor' }),
+      })
+    } catch {}
   }
 
   useEffect(() => {
@@ -72,6 +84,11 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         if (Array.isArray(ka)) {
           setKameraAktif(ka.find((a: any) => a.anahtar === `kamera_aktif_${deviceId}`)?.deger === 'true')
         }
+        try {
+          const tipRes = await fetch(`/api/ayarlar?anahtar_prefix=gaz_sensor_tip_${deviceId}`)
+          const tipData = await tipRes.json()
+          if (Array.isArray(tipData) && tipData.length > 0 && tipData[0].value) setGazSensorTip(tipData[0].value)
+        } catch {}
       } catch { setError('Veri alinamadi') }
     }
     fetchAll()
@@ -187,7 +204,15 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
             <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
             <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
             <div className="bg-gray-800 rounded-2xl p-3 border border-gray-700 flex flex-col gap-1">
-              <span className="text-[10px] text-gray-500 uppercase tracking-wide">Gaz</span>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-gray-500 uppercase tracking-wide">Gaz</span>
+                <select value={gazSensorTip} onChange={e => gazSensorTipDegistir(e.target.value)}
+                  className="text-[9px] bg-gray-700 text-gray-300 rounded border border-gray-600 px-1 py-0.5 cursor-pointer">
+                  {['MQ-2','MQ-135','MQ-7','MQ-9','MQ-4','MQ-5'].map(t => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
               {gazMetrics.filter(gm => sensorValues(gm) != null).map(gm => (
                 <div key={gm} className="flex justify-between items-center">
                   <span className="text-xs text-gray-400">{gazEtiket[gm]}</span>

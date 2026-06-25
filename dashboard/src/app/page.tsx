@@ -15,10 +15,6 @@ function goreceliZaman(ts: number): string {
   return `${gun}g önce`
 }
 
-const gazSensorTipleri = [
-  'MQ-2', 'MQ-135', 'MQ-7', 'MQ-9', 'MQ-4', 'MQ-5',
-]
-
 interface Cihaz {
   device_id: string
   mac: string | null
@@ -31,13 +27,11 @@ interface Cihaz {
   kayitSayisi: number
   aktif: boolean
   gazGenel: number | null
-  gazSensorTip: string | null
 }
 
 export default function CihazListesi() {
   const [cihazlar, setCihazlar] = useState<Cihaz[]>([])
   const [oturumVar, setOturumVar] = useState<boolean | null>(null)
-  const [gazSensorTipleriState, setGazSensorTipleriState] = useState<Record<string, string>>({})
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -80,37 +74,6 @@ export default function CihazListesi() {
     const interval = setInterval(fetchCihazlar, 5000)
     return () => clearInterval(interval)
   }, [])
-
-  useEffect(() => {
-    const fetchGazTipleri = async () => {
-      try {
-        const res = await fetch('/api/ayarlar?anahtar_prefix=gaz_sensor_tip_')
-        const data = await res.json()
-        if (Array.isArray(data)) {
-          const map: Record<string, string> = {}
-          for (const item of data) {
-            if (item.key && item.value) {
-              const id = item.key.replace('gaz_sensor_tip_', '')
-              map[id] = item.value
-            }
-          }
-          setGazSensorTipleriState(map)
-        }
-      } catch {}
-    }
-    fetchGazTipleri()
-  }, [])
-
-  const gazSensorTipDegistir = async (deviceId: string, tip: string) => {
-    setGazSensorTipleriState(prev => ({ ...prev, [deviceId]: tip }))
-    try {
-      await fetch('/api/ayarlar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anahtar: `gaz_sensor_tip_${deviceId}`, deger: tip, kategori: 'sensor' }),
-      })
-    } catch {}
-  }
 
   return (
     <div className="flex flex-col items-center">
@@ -158,18 +121,6 @@ export default function CihazListesi() {
                 <div>
                   <span className="text-xs text-gray-500">Gaz</span>
                   <p className="text-amber-300 font-semibold">{c.gazGenel != null ? c.gazGenel : '-'}</p>
-                  {c.gazGenel != null && (
-                    <select
-                      value={gazSensorTipleriState[c.device_id] || 'MQ-2'}
-                      onChange={e => gazSensorTipDegistir(c.device_id, e.target.value)}
-                      onClick={e => e.stopPropagation()}
-                      className="text-[9px] mt-0.5 bg-gray-700 text-gray-300 rounded border border-gray-600 px-1 py-0.5 w-full cursor-pointer"
-                    >
-                      {gazSensorTipleri.map(t => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                  )}
                 </div>
                 <div>
                   <span className="text-xs text-gray-500">Wi-Fi</span>

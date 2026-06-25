@@ -123,9 +123,13 @@ float sesOkuRMS() {
     if (i2s_read(I2S_PORT, buf, sizeof(buf), &okunan, 50) != ESP_OK || okunan == 0) return 0;
     int adet = okunan / 4;
     if (adet == 0) return 0;
+    static int sira = 0;
+    if (++sira % 5 == 0 && adet > 0) {
+        Serial.printf("[I2S] ilk 4: %d %d %d %d\n", buf[0], buf[1], buf[2], buf[3]);
+    }
     double toplam = 0;
     for (int i = 0; i < adet; i++) {
-        double s = (double)(buf[i] >> 14) / 16384.0;
+        double s = (double)(buf[i] >> 8) / 8388608.0;
         toplam += s * s;
     }
     return (float)(sqrt(toplam / adet) * 100.0);
@@ -255,7 +259,7 @@ void oledGuncelle() {
 
     if (millis() - tSon_ekranSayfa >= Z_SAYFA) {
         tSon_ekranSayfa = millis();
-        ekranSayfa = (ekranSayfa + 1) % 4;
+        ekranSayfa = (ekranSayfa + 1) % 5;
     }
 
     u8g2.clearBuffer();
@@ -272,9 +276,12 @@ void oledGuncelle() {
     } else if (ekranSayfa == 2) {
         etiket = "BASINC";
         snprintf(deger, sizeof(deger), "%.0f", basinc);
-    } else {
+    } else if (ekranSayfa == 3) {
         etiket = "MQ-2";
         snprintf(deger, sizeof(deger), "%d", gazGenel);
+    } else {
+        etiket = "SES";
+        snprintf(deger, sizeof(deger), "%.2f", sesSeviye);
     }
 
     u8g2.setFont(u8g2_font_ncenB08_tr);
