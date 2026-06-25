@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kolla Medikal Takip",
+  title: "Kolla Takip",
   description: "ESP32-C3 Medikal Takip Sistemi",
   manifest: "/manifest.json",
   appleWebApp: {

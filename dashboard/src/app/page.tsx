@@ -114,7 +114,7 @@ export default function CihazListesi() {
 
   return (
     <div className="flex flex-col items-center">
-      <h1 className="text-2xl font-bold mb-2 text-emerald-400">Kolla Medikal Takip</h1>
+      <h1 className="text-2xl font-bold mb-2 text-emerald-400">Kolla Takip</h1>
       <p className="text-sm text-gray-500 mb-6">Bağlı Cihazlar</p>
       {oturumVar === false && (
         <div className="bg-amber-900/20 border border-amber-700/40 rounded-xl px-4 py-3 text-amber-300 text-sm mb-4">
