@@ -30,7 +30,7 @@ export async function GET() {
       query('GET', 'kolla_telemetry?select=*&order=recorded_at.desc&limit=1000'),
       query('GET', 'kolla_devices?select=device_id,name,location'),
       query('GET', 'kolla_thresholds?select=device_id,metric'),
-      query('GET', 'ayarlar?select=key,value&key=like.son_sensor_*'),
+      query('GET', 'kolla_ayarlar?select=key,value&key=like.son_sensor_*'),
     ])
     const rows = result[0] as any[]
     const kayitliCihazlar = result[1] as any[]
