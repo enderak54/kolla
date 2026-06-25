@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     if (deviceId) filter += `&target_device=eq.${encodeURIComponent(deviceId)}`
     else filter += `&target_device=eq.`
 
-    const rows = await query('GET', `firmware?select=*&${filter}`)
+    const rows = await query('GET', `kolla_firmware?select=*&${filter}`)
     if (!rows || rows.length === 0)
       return Response.json({ update_available: false })
 

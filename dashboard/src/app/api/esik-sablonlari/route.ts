@@ -18,7 +18,7 @@ async function query(method: string, path: string, body?: unknown) {
 
 export async function GET() {
   try {
-    const rows = await query('GET', 'esik_sablonlari?select=*&order=created_at.desc')
+    const rows = await query('GET', 'kolla_esik_sablonlari?select=*&order=created_at.desc')
     return Response.json(rows)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json()
     if (!body.ad) return Response.json({ error: 'ad gerekli' }, { status: 400 })
-    await query('POST', 'esik_sablonlari', {
+    await query('POST', 'kolla_esik_sablonlari', {
       ad: body.ad,
       aciklama: body.aciklama || '',
       esikler: body.esikler || [],
@@ -47,7 +47,7 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return Response.json({ error: 'id gerekli' }, { status: 400 })
-    await query('DELETE', `esik_sablonlari?id=eq.${id}`)
+    await query('DELETE', `kolla_esik_sablonlari?id=eq.${id}`)
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })

@@ -20,7 +20,7 @@ async function sb(method: string, path: string, body?: any) {
 
 export async function GET() {
   try {
-    const rows = await sb('GET', `varsayilan_ayarlar?anahtar=eq.${VARSALON_KEY}`)
+    const rows = await sb('GET', `kolla_varsayilan_ayarlar?anahtar=eq.${VARSALON_KEY}`)
     if (!rows || rows.length === 0) {
       return Response.json({ ham_gun: 7, saatlik_gun: 90, gunluk_gun: 365 })
     }
@@ -33,11 +33,11 @@ export async function GET() {
 export async function PUT(request: Request) {
   try {
     const deger = await request.json()
-    const rows = await sb('GET', `varsayilan_ayarlar?anahtar=eq.${VARSALON_KEY}`)
+    const rows = await sb('GET', `kolla_varsayilan_ayarlar?anahtar=eq.${VARSALON_KEY}`)
     if (rows && rows.length > 0) {
-      await sb('PATCH', `varsayilan_ayarlar?anahtar=eq.${VARSALON_KEY}`, { deger })
+      await sb('PATCH', `kolla_varsayilan_ayarlar?anahtar=eq.${VARSALON_KEY}`, { deger })
     } else {
-      await sb('POST', 'varsayilan_ayarlar', { anahtar: VARSALON_KEY, deger })
+      await sb('POST', 'kolla_varsayilan_ayarlar', { anahtar: VARSALON_KEY, deger })
     }
     return Response.json({ ok: true })
   } catch (e) {

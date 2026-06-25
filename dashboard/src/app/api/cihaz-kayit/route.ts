@@ -1,7 +1,7 @@
 const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
 
 async function findTable(deviceId: string) {
-  for (const table of ['cihazlar', 'devices']) {
+  for (const table of ['kolla_cihazlar', 'kolla_devices']) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?device_id=eq.${deviceId}&select=device_id&limit=1`, {
       headers: {
         'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -42,29 +42,29 @@ export async function POST(request: Request) {
       return Response.json({ error: 'cihazlar tablosu bulunamadi, Supabase\'den ekleyin' }, { status: 500 })
     }
 
-    if (table === 'devices') {
-      const existing = await fetch(`${SUPABASE_URL}/rest/v1/devices?device_id=eq.${deviceId}&select=device_id`, {
+    if (table === 'kolla_devices') {
+      const existing = await fetch(`${SUPABASE_URL}/rest/v1/kolla_devices?device_id=eq.${deviceId}&select=device_id`, {
         headers: { 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}` },
       }).then(r => r.json())
 
       if (!existing || existing.length === 0) {
-        await writeRow('POST', 'devices', {
+        await writeRow('POST', 'kolla_devices', {
           device_id: deviceId,
           name: body.ad || deviceId,
           location: body.location || '',
         })
       } else {
-        await writeRow('PATCH', `devices?device_id=eq.${deviceId}`, {
+        await writeRow('PATCH', `kolla_devices?device_id=eq.${deviceId}`, {
           name: body.ad || deviceId,
         })
       }
     } else {
-      const existing = await fetch(`${SUPABASE_URL}/rest/v1/cihazlar?device_id=eq.${deviceId}&select=device_id`, {
+      const existing = await fetch(`${SUPABASE_URL}/rest/v1/kolla_cihazlar?device_id=eq.${deviceId}&select=device_id`, {
         headers: { 'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}` },
       }).then(r => r.json())
 
       if (!existing || existing.length === 0) {
-        await writeRow('POST', 'cihazlar', {
+        await writeRow('POST', 'kolla_cihazlar', {
           device_id: deviceId,
           ad: body.ad || deviceId,
           firmware_version: body.firmware_version || '',
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
           son_guncelleme: new Date().toISOString(),
         })
       } else {
-        await writeRow('PATCH', `cihazlar?device_id=eq.${deviceId}`, {
+        await writeRow('PATCH', `kolla_cihazlar?device_id=eq.${deviceId}`, {
           firmware_version: body.firmware_version,
           sensor_config: body.sensor_config,
           son_guncelleme: new Date().toISOString(),

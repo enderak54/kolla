@@ -18,7 +18,7 @@ async function sb(method: string, path: string, body?: any) {
 
 export async function GET() {
   try {
-    const rows = await sb('GET', 'bildirim_kanallari?select=*&order=kanal')
+    const rows = await sb('GET', 'kolla_bildirim_kanallari?select=*&order=kanal')
     return Response.json(rows)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -32,7 +32,7 @@ export async function PUT(request: Request) {
     const patch: any = {}
     if (ayarlar !== undefined) patch.ayarlar = ayarlar
     if (aktif !== undefined) patch.aktif = aktif
-    await sb('PATCH', `bildirim_kanallari?kanal=eq.${kanal}`, patch)
+    await sb('PATCH', `kolla_bildirim_kanallari?kanal=eq.${kanal}`, patch)
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })

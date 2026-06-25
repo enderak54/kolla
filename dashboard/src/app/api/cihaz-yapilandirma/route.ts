@@ -1,7 +1,7 @@
 const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
 
 async function tryQuery(method: string, path: string, body?: any) {
-  const tables = ['cihazlar', 'devices']
+  const tables = ['kolla_cihazlar', 'kolla_devices']
   for (const table of tables) {
     const p = path.includes('?') ? path.replace(/^[^?]+/, table) : table
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${p}`, {
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     const deviceId = url.searchParams.get('device_id')
     if (!deviceId) return Response.json({ error: 'device_id gerekli' }, { status: 400 })
 
-    const rows = await tryQuery('GET', `cihazlar?device_id=eq.${deviceId}&limit=1`)
+    const rows = await tryQuery('GET', `kolla_cihazlar?device_id=eq.${deviceId}&limit=1`)
     if (!rows || rows.length === 0) {
       return Response.json({ error: 'cihaz bulunamadi' }, { status: 404 })
     }
@@ -52,7 +52,7 @@ export async function PUT(request: Request) {
     const body = await request.json()
     delete body.device_id
 
-    await tryQuery('PATCH', `cihazlar?device_id=eq.${deviceId}`, body)
+    await tryQuery('PATCH', `kolla_cihazlar?device_id=eq.${deviceId}`, body)
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })

@@ -20,7 +20,7 @@ async function query(method: string, path: string, body?: any) {
 
 export async function GET() {
   try {
-    const rows = await query('GET', 'firmware?select=*&order=created_at.desc')
+    const rows = await query('GET', 'kolla_firmware?select=*&order=created_at.desc')
     return Response.json(rows)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     if (!body.version || !body.dosya_url) {
       return Response.json({ error: 'version ve dosya_url gerekli' }, { status: 400 })
     }
-    await query('POST', 'firmware', {
+    await query('POST', 'kolla_firmware', {
       version: body.version,
       dosya_url: body.dosya_url,
       changelog: body.changelog || '',
@@ -52,7 +52,7 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return Response.json({ error: 'id gerekli' }, { status: 400 })
-    await query('DELETE', `firmware?id=eq.${id}`)
+    await query('DELETE', `kolla_firmware?id=eq.${id}`)
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })

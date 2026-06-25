@@ -18,7 +18,7 @@ async function query(method: string, path: string, body?: unknown) {
 
 export async function GET() {
   try {
-    const rows = await query('GET', 'birimler?select=*&order=tip,ad')
+    const rows = await query('GET', 'kolla_birimler?select=*&order=tip,ad')
     return Response.json(rows)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     if (!body.tip || !body.ad) return Response.json({ error: 'tip ve ad gerekli' }, { status: 400 })
     if (!['bina','kat','oda','birim'].includes(body.tip))
       return Response.json({ error: 'gecersiz tip' }, { status: 400 })
-    await query('POST', 'birimler', {
+    await query('POST', 'kolla_birimler', {
       tip: body.tip,
       ad: body.ad,
       parent_id: body.parent_id || null,
@@ -47,7 +47,7 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
     if (!id) return Response.json({ error: 'id gerekli' }, { status: 400 })
-    await query('DELETE', `birimler?id=eq.${id}`)
+    await query('DELETE', `kolla_birimler?id=eq.${id}`)
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })

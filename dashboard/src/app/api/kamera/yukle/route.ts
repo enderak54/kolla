@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/kamera/${storagePath}`
 
     // Save metadata
-    await fetch(`${SUPABASE_URL}/rest/v1/kamera_kayitlari`, {
+    await fetch(`${SUPABASE_URL}/rest/v1/kolla_kamera_kayitlari`, {
       method: 'POST',
       headers: {
         'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

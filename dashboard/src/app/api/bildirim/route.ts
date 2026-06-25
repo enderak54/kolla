@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const { device_id, tip, baslik, mesaj } = body
     if (!tip || !baslik) return Response.json({ error: 'tip ve baslik gerekli' }, { status: 400 })
 
-    const result = await sb('POST', 'bildirimler', {
+    const result = await sb('POST', 'kolla_bildirimler', {
       device_id: device_id || null,
       tip,
       baslik,
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       await auditLog('NOTIFICATION_CREATE', 'bildirimler', String(result[0].id), { tip, baslik, device_id }, undefined, undefined, ip)
     }
 
-    const kanallar: any[] = await sb('GET', 'bildirim_kanallari?select=*&aktif=eq.true')
+    const kanallar: any[] = await sb('GET', 'kolla_bildirim_kanallari?select=*&aktif=eq.true')
     for (const k of kanallar) {
       if (k.kanal === 'telegram' && k.ayarlar?.bot_token && k.ayarlar?.chat_id) {
         telegramGonder(k.ayarlar.bot_token, k.ayarlar.chat_id, `*${baslik}*\n${mesaj || ''}\n\n📡 ${device_id || 'Sistem'} | ${new Date().toLocaleString('tr-TR')}`)
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
     let filter = `select=*&order=created_at.desc&limit=${limit}`
     if (durum) filter += `&durum=eq.${durum}`
 
-    const rows = await sb('GET', `bildirimler?${filter}`)
+    const rows = await sb('GET', `kolla_bildirimler?${filter}`)
     return Response.json(rows)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -89,7 +89,7 @@ export async function PATCH(request: Request) {
   try {
     const { id, durum } = await request.json()
     if (!id || !durum) return Response.json({ error: 'id ve durum gerekli' }, { status: 400 })
-    await sb('PATCH', `bildirimler?id=eq.${id}`, { durum })
+    await sb('PATCH', `kolla_bildirimler?id=eq.${id}`, { durum })
 
     const ip = getClientIp(request)
     await auditLog('NOTIFICATION_UPDATE', 'bildirimler', String(id), { durum }, undefined, undefined, ip)

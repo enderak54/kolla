@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     const deviceId = url.searchParams.get('device_id')
     const suanki = url.searchParams.get('suanki') || ''
 
-    const rows = await query('GET', `firmware?select=*&order=created_at.desc&limit=1`)
+    const rows = await query('GET', `kolla_firmware?select=*&order=created_at.desc&limit=1`)
     if (!rows || rows.length === 0) {
       return Response.json({ guncelleme: false, mesaj: 'firmware bulunamadi' })
     }

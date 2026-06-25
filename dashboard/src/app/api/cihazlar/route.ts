@@ -27,9 +27,9 @@ async function query(method: string, path: string, body?: any) {
 export async function GET() {
   try {
     const result = await Promise.all([
-      query('GET', 'telemetry?select=*&order=recorded_at.desc&limit=1000'),
-      query('GET', 'devices?select=device_id,name,location'),
-      query('GET', 'thresholds?select=device_id,metric'),
+      query('GET', 'kolla_telemetry?select=*&order=recorded_at.desc&limit=1000'),
+      query('GET', 'kolla_devices?select=device_id,name,location'),
+      query('GET', 'kolla_thresholds?select=device_id,metric'),
       query('GET', 'ayarlar?select=key,value&key=like.son_sensor_*'),
     ])
     const rows = result[0] as any[]
@@ -100,9 +100,9 @@ export async function DELETE(request: Request) {
     const deviceId = url.searchParams.get('device_id')
     if (!deviceId) return Response.json({ error: 'device_id gerekli' }, { status: 400 })
 
-    await query('DELETE', `thresholds?device_id=eq.${deviceId}`)
-    await query('DELETE', `telemetry?device_id=eq.${deviceId}`)
-    await query('DELETE', `devices?device_id=eq.${deviceId}`)
+    await query('DELETE', `kolla_thresholds?device_id=eq.${deviceId}`)
+    await query('DELETE', `kolla_telemetry?device_id=eq.${deviceId}`)
+    await query('DELETE', `kolla_devices?device_id=eq.${deviceId}`)
 
     const ip = getClientIp(request)
     await auditLog('DEVICE_DELETE', 'devices', deviceId, {}, undefined, undefined, ip)
@@ -119,13 +119,13 @@ export async function POST(request: Request) {
     const deviceId = body.device_id
     if (!deviceId) return Response.json({ error: 'device_id gerekli' }, { status: 400 })
 
-    const existing = await query('GET', `devices?device_id=eq.${deviceId}&select=device_id`) as any[]
+    const existing = await query('GET', `kolla_devices?device_id=eq.${deviceId}&select=device_id`) as any[]
     if (existing.length > 0) {
-      await query('PATCH', `devices?device_id=eq.${deviceId}`, { name: body.ad || deviceId, location: body.location || '' })
+      await query('PATCH', `kolla_devices?device_id=eq.${deviceId}`, { name: body.ad || deviceId, location: body.location || '' })
       const ip = getClientIp(request)
       await auditLog('DEVICE_UPDATE', 'devices', deviceId, { ad: body.ad, location: body.location }, undefined, undefined, ip)
     } else {
-      await query('POST', 'devices', { device_id: deviceId, name: body.ad || deviceId, location: body.location || '' })
+      await query('POST', 'kolla_devices', { device_id: deviceId, name: body.ad || deviceId, location: body.location || '' })
       const ip = getClientIp(request)
       await auditLog('DEVICE_CREATE', 'devices', deviceId, { ad: body.ad, location: body.location }, undefined, undefined, ip)
     }

@@ -99,14 +99,14 @@ export async function POST(request: Request) {
     }
     if (Object.keys(sensorObj).length > 0 && anonKey) {
       const anonHeaders = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}`, 'Content-Type': 'application/json' }
-      fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
+      fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
         method: 'POST',
         headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
         body: JSON.stringify({ key: `son_sensor_${deviceId}`, value: JSON.stringify(sensorObj), type: 'sensor' }),
       }).catch(() => {})
       ;(async () => {
         try {
-          const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar?key=eq.${encodeURIComponent('sensor_gecmis_' + deviceId)}&select=value`, { headers: anonHeaders })
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?key=eq.${encodeURIComponent('sensor_gecmis_' + deviceId)}&select=value`, { headers: anonHeaders })
           let gecmis: any[] = []
           if (res.ok) {
             const rows = await res.json()
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
           }
           gecmis.push({ t: new Date().toISOString(), ...sensorObj })
           if (gecmis.length > 500) gecmis = gecmis.slice(-500)
-          await fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
+          await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
             method: 'POST',
             headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
             body: JSON.stringify({ key: `sensor_gecmis_${deviceId}`, value: JSON.stringify(gecmis), type: 'sensor' }),
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       })()
     }
 
-    await query('POST', 'telemetry', payload)
+    await query('POST', 'kolla_telemetry', payload)
 
     return Response.json({ ok: true })
   } catch (e) {
@@ -138,7 +138,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const deviceId = url.searchParams.get('device_id') || ''
     const filter = deviceId ? `&device_id=eq.${deviceId}` : ''
-    const history: any[] = await query('GET', `telemetry?select=*${filter}&order=recorded_at.desc&limit=100`)
+    const history: any[] = await query('GET', `kolla_telemetry?select=*${filter}&order=recorded_at.desc&limit=100`)
 
     const mapRow = (r: any) => ({
       device_id: r.device_id,

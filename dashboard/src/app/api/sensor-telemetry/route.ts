@@ -19,10 +19,10 @@ export async function POST(request: Request) {
       sensorObj[s.metric] = s.value
     }
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
       method: 'POST',
       headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
-      body: JSON.stringify({ anahtar: `son_sensor_${device_id}`, deger: JSON.stringify(sensorObj), kategori: 'sensor' }),
+      body: JSON.stringify({ key: `son_sensor_${device_id}`, value: JSON.stringify(sensorObj), type: 'sensor' }),
     })
     if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`) }
 
@@ -38,9 +38,9 @@ export async function GET(request: Request) {
     const deviceId = url.searchParams.get('device_id')
 
     let filter = `select=*`
-    if (deviceId) filter += `&anahtar=eq.son_sensor_${encodeURIComponent(deviceId)}`
+    if (deviceId) filter += `&key=eq.son_sensor_${encodeURIComponent(deviceId)}`
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/ayarlar?${filter}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?${filter}`, {
       headers,
     })
     if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`) }
@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const rows: any[] = await res.json()
     const obj: any = {}
     for (const r of rows) {
-      try { obj[r.anahtar.replace('son_sensor_', '')] = JSON.parse(r.deger) } catch {}
+      try { obj[r.key.replace('son_sensor_', '')] = JSON.parse(r.value) } catch {}
     }
 
     return Response.json(obj)

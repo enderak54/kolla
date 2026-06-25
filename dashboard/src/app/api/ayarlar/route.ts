@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const prefix = url.searchParams.get('anahtar_prefix')
     const filter = prefix ? `&key=like.${prefix}*` : ''
-    const data = await sb('GET', `ayarlar?select=*&order=type.asc${filter}`)
+    const data = await sb('GET', `kolla_ayarlar?select=*&order=type.asc${filter}`)
     return Response.json(data)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
   try {
     const { anahtar, deger } = await request.json()
-    await sb('PATCH', `ayarlar?key=eq.${anahtar}`, { value: deger })
+      await sb('PATCH', `kolla_ayarlar?key=eq.${anahtar}`, { value: deger })
     return Response.json({ ok: true })
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
@@ -41,11 +41,11 @@ export async function POST(request: Request) {
   try {
     const { anahtar, deger, kategori } = await request.json()
     if (!anahtar) return Response.json({ error: 'anahtar gerekli' }, { status: 400 })
-    const rows = await sb('GET', `ayarlar?key=eq.${anahtar}`)
+    const rows = await sb('GET', `kolla_ayarlar?key=eq.${anahtar}`)
     if (rows && rows.length > 0) {
-      await sb('PATCH', `ayarlar?key=eq.${anahtar}`, { value: deger })
+    await sb('PATCH', `kolla_ayarlar?key=eq.${anahtar}`, { value: deger })
     } else {
-      await sb('POST', 'ayarlar', { key: anahtar, value: deger, type: kategori || 'general' })
+      await sb('POST', 'kolla_ayarlar', { key: anahtar, value: deger, type: kategori || 'general' })
     }
     return Response.json({ ok: true })
   } catch (e) {

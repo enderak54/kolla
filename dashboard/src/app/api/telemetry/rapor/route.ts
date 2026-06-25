@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       if (basTarih) filters += `&hour_start=gte.${encodeURIComponent(basTarih)}`
       if (bitTarih) filters += `&hour_start=lte.${encodeURIComponent(bitTarih)}`
 
-      rows = await query(`telemetry_saatlik?${filters}`)
+      rows = await query(`kolla_telemetry_saatlik?${filters}`)
 
       if (saatFark > 720) {
         // > 30 days: use daily summary
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
         if (basTarih) filters += `&day=gte.${encodeURIComponent(basTarih.split('T')[0])}`
         if (bitTarih) filters += `&day=lte.${encodeURIComponent(bitTarih.split('T')[0])}`
 
-        rows = await query(`telemetry_gunluk?${filters}`)
+        rows = await query(`kolla_telemetry_gunluk?${filters}`)
 
         return Response.json(rows.map((r: any) => ({
           ...r,
@@ -70,7 +70,7 @@ export async function GET(request: Request) {
     if (basTarih) filters += `&recorded_at=gte.${encodeURIComponent(basTarih)}`
     if (bitTarih) filters += `&recorded_at=lte.${encodeURIComponent(bitTarih)}`
 
-    rows = await query(`telemetry?${filters}`)
+    rows = await query(`kolla_telemetry?${filters}`)
 
     const kapiDurumHesapla = (prev: any, cur: any): boolean | null => {
       if (cur.kapi !== null && cur.kapi !== undefined) return cur.kapi

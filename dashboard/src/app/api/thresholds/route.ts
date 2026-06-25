@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
     const deviceId = url.searchParams.get('device_id')
-    let path = 'thresholds?select=*'
+    let path = 'kolla_thresholds?select=*'
     if (deviceId && deviceId !== 'ALL') path += `&device_id=eq.${encodeURIComponent(deviceId)}`
     const data = await supabase('GET', path)
     return Response.json(data)
@@ -37,14 +37,14 @@ export async function PUT(request: Request) {
     const { metric, min_val, max_val, enabled, device_id } = await request.json()
     const did = device_id || 'KOLLA-000001'
 
-    const existing = await supabase('GET', `thresholds?device_id=eq.${did}&metric=eq.${metric}&select=id`)
+    const existing = await supabase('GET', `kolla_thresholds?device_id=eq.${did}&metric=eq.${metric}&select=id`)
 
     if (Array.isArray(existing) && existing.length > 0) {
-      await supabase('PATCH', `thresholds?device_id=eq.${did}&metric=eq.${metric}`, {
+      await supabase('PATCH', `kolla_thresholds?device_id=eq.${did}&metric=eq.${metric}`, {
         min_val, max_val, enabled, updated_at: new Date().toISOString(),
       })
     } else {
-      await supabase('POST', 'thresholds', {
+      await supabase('POST', 'kolla_thresholds', {
         device_id: did, metric, min_val, max_val, enabled, updated_at: new Date().toISOString(),
       })
     }

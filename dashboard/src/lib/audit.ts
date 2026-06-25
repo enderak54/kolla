@@ -10,7 +10,7 @@ export async function auditLog(
   ipAddress?: string
 ) {
   try {
-    await supabase.from('audit_log').insert({
+    await supabase.from('kolla_audit_log').insert({
       action,
       entity_type: entityType,
       entity_id: entityId,
