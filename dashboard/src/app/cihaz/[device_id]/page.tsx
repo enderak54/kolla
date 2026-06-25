@@ -296,6 +296,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
               { key: 'sicaklik', dataKey: 'sicaklik', color: '#EF4444', name: 'Sıcaklık °C' },
               { key: 'nem', dataKey: 'nem', color: '#0EA5E9', name: 'Nem %' },
               { key: 'basinc', dataKey: 'basinc', color: '#10B981', name: 'Basınç hPa' },
+              { key: 'ses', dataKey: 'ses', color: '#F59E0B', name: 'Ses' },
             ].map(m => (
               <div key={m.key}>
                 <MiniChart data={filteredHistory} dataKey={m.dataKey} color={m.color} name={m.name} />
