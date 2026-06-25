@@ -54,12 +54,12 @@ export async function GET() {
           mqttAio: r.mqtt_aio,
           kayitSayisi: 1,
           mac: r.mac || null,
-          gazGenel: r.gaz_genel ?? null,
+          gazGenel: r.sensors?.gaz_genel ?? null,
         })
       } else {
         const d = deviceMap.get(id)!
         d.kayitSayisi++
-        if (r.gaz_genel != null) d.gazGenel = r.gaz_genel
+        if (r.sensors?.gaz_genel != null) d.gazGenel = r.sensors.gaz_genel
       }
     }
 
