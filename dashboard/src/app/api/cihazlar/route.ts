@@ -30,10 +30,21 @@ export async function GET() {
       query('GET', 'telemetry?select=*&order=recorded_at.desc&limit=1000'),
       query('GET', 'devices?select=device_id,name,location'),
       query('GET', 'thresholds?select=device_id,metric'),
+      query('GET', 'ayarlar?select=key,value&key=like.son_sensor_*'),
     ])
     const rows = result[0] as any[]
     const kayitliCihazlar = result[1] as any[]
     const thresholds = result[2] as any[]
+    const sonSensorler = result[3] as any[]
+
+    const gazMap = new Map<string, number>()
+    for (const s of sonSensorler || []) {
+      const deviceId = s.key.replace('son_sensor_', '')
+      try {
+        const data = JSON.parse(s.value)
+        if (data.gaz_genel != null) gazMap.set(deviceId, data.gaz_genel)
+      } catch {}
+    }
 
     const kayitliSet = new Set(kayitliCihazlar.map((d: any) => d.device_id))
     const deviceInfo = new Map(kayitliCihazlar.map((d: any) => [d.device_id, { name: d.name, location: d.location }]))
@@ -44,6 +55,7 @@ export async function GET() {
     for (const r of rows) {
       const id = r.device_id || 'BILINMEYEN'
       if (id === 'BILINMEYEN') continue
+      const gaz = gazMap.get(id) ?? null
       if (!deviceMap.has(id)) {
         deviceMap.set(id, {
           sonGuncelleme: new Date(r.recorded_at).getTime(),
@@ -54,12 +66,12 @@ export async function GET() {
           mqttAio: r.mqtt_aio,
           kayitSayisi: 1,
           mac: r.mac || null,
-          gazGenel: r.sensors?.gaz_genel ?? null,
+          gazGenel: gaz,
         })
       } else {
         const d = deviceMap.get(id)!
         d.kayitSayisi++
-        if (r.sensors?.gaz_genel != null) d.gazGenel = r.sensors.gaz_genel
+        if (gaz != null) d.gazGenel = gaz
       }
     }
 

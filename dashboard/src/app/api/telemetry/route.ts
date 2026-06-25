@@ -97,8 +97,6 @@ export async function POST(request: Request) {
     for (const k of Object.keys(body)) {
       if (gazAlani(k) && typeof (body as any)[k] === 'number') sensorObj[k] = (body as any)[k]
     }
-    if (Object.keys(sensorObj).length > 0) payload.sensors = sensorObj
-
     if (Object.keys(sensorObj).length > 0 && anonKey) {
       const anonHeaders = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}`, 'Content-Type': 'application/json' }
       fetch(`${SUPABASE_URL}/rest/v1/ayarlar`, {
@@ -156,7 +154,6 @@ export async function GET(request: Request) {
       mqttAio: r.mqtt_aio ? 1 : 0,
       timestamp: new Date(r.recorded_at).getTime(),
       kapi: r.kapi ?? null,
-      gaz_genel: r.sensors?.gaz_genel ?? null,
     })
 
     const reversed = [...history].reverse().map(mapRow)
