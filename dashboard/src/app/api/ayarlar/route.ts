@@ -21,7 +21,8 @@ export async function GET(request: Request) {
     const prefix = url.searchParams.get('anahtar_prefix')
     const filter = prefix ? `&key=like.${prefix}*` : ''
     const data = await sb('GET', `kolla_ayarlar?select=*&order=type.asc${filter}`)
-    return Response.json(data)
+    const mapped = (data as any[]).map((r: any) => ({ anahtar: r.key, deger: r.value, kategori: r.type || 'general', aciklama: r.aciklama || '' }))
+    return Response.json(mapped)
   } catch (e) {
     return Response.json({ error: String(e) }, { status: 500 })
   }

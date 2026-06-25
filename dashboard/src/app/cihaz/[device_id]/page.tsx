@@ -87,7 +87,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         try {
           const tipRes = await fetch(`/api/ayarlar?anahtar_prefix=gaz_sensor_tip_${deviceId}`)
           const tipData = await tipRes.json()
-          if (Array.isArray(tipData) && tipData.length > 0 && tipData[0].value) setGazSensorTip(tipData[0].value)
+          if (Array.isArray(tipData) && tipData.length > 0 && tipData[0].deger) setGazSensorTip(tipData[0].deger)
         } catch {}
       } catch { setError('Veri alinamadi') }
     }
