@@ -32,9 +32,12 @@ interface TelemetryData {
   mqttLokal?: number
   mqttAio?: number
   timestamp: number
-  kapi?: boolean
   gaz_genel?: number
+  isik?: number
+  kapi?: boolean
   sensors?: { sensor_id: string; metric: string; value: number }[]
+
+
 }
 
 export async function POST(request: Request) {
@@ -87,7 +90,7 @@ export async function POST(request: Request) {
 
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-    const gazAlani = (k: string) => ['gaz_genel','lpg','co','duman','metan','hidrojen'].includes(k)
+    const gazAlani = (k: string) => ['gaz_genel','lpg','co','duman','metan','hidrojen','isik'].includes(k)
     const sensorObj: Record<string, any> = {}
     if (Array.isArray(body.sensors)) {
       for (const s of body.sensors) {

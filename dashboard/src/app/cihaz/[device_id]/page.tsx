@@ -308,11 +308,12 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
                 ))}
               </div>
             ))}
-            {sensorGecmis.length > 0 && gazMetrics.filter(gm => sensorGecmis.some((e: any) => e[gm] != null)).map(gm => (
+            {sensorGecmis.length > 0 && Object.keys(sensorData).filter(gm => !['sicaklik','nem','basinc','ses','cpu','ram','kapi'].includes(gm) && sensorGecmis.some((e: any) => e[gm] != null)).map(gm => (
                 <div key={gm}>
-                  <MiniChart data={sensorGecmis} dataKey={gm} color={{ gaz_genel: '#F97316', lpg: '#A855F7', co: '#EF4444', duman: '#6B7280', metan: '#22C55E', hidrojen: '#3B82F6' }[gm] || '#F97316'} name={`${gazEtiket[gm]} ppm`} />
+                  <MiniChart data={sensorGecmis} dataKey={gm} color={{ gaz_genel: '#F97316', lpg: '#A855F7', co: '#EF4444', duman: '#6B7280', metan: '#22C55E', hidrojen: '#3B82F6', isik: '#FBBF24', lux: '#FBBF24' }[gm] || '#F97316'} name={`${gazEtiket[gm] || (gm === 'isik' ? 'Işık' : gm.toUpperCase())}${gm === 'isik' || gm === 'lux' ? ' lx' : ' ppm'}`} />
                 </div>
             ))}
+
           </div>
         </div>
       )}

@@ -11,6 +11,8 @@
 #include <Preferences.h>
 #include <Update.h>
 #include <math.h>
+#include <BH1750.h>
+
 
 #define FIRMWARE_VERSION "1.0.0"
 
@@ -53,6 +55,8 @@ WiFiClient lokalClient;
 WiFiClient aioClient;
 PubSubClient lokalMQTT(lokalClient);
 PubSubClient aioMQTT(aioClient);
+BH1750 lightMeter(0x23);
+
 
 // --- Durum Degiskenleri ---
 unsigned long tSon_oled      = 0;
@@ -91,6 +95,8 @@ float cpuIsi     = 0;
 float sesSeviye  = 0;
 uint32_t bosRam  = 0;
 int    gazGenel  = 0;
+float isik       = 0;
+
 
 // --- I2S Baslat ---
 bool i2sBaslat() {
@@ -168,11 +174,12 @@ void lokalMQTTCallback(char* topic, byte* payload, unsigned int length) {
     if (msg == "1") digitalWrite(RELAY_PIN, LOW);
     else if (msg == "0") digitalWrite(RELAY_PIN, HIGH);
     else if (msg == "STATUS") {
-        char buf[128];
-        snprintf(buf, sizeof(buf), "%.1f,%.1f,%.1f,%.2f,%.1f,%u,%d",
-                 sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam, gazAlarm ? 1 : 0);
+        char buf[160];
+        snprintf(buf, sizeof(buf), "%.1f,%.1f,%.1f,%.2f,%.1f,%u,%d,%.1f",
+                 sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam, gazAlarm ? 1 : 0, isik);
         lokalMQTT.publish(LOKAL_TOPIC_TELEM, buf);
     }
+
 }
 
 void lokalMQTTBaglan() {
@@ -259,7 +266,7 @@ void oledGuncelle() {
 
     if (millis() - tSon_ekranSayfa >= Z_SAYFA) {
         tSon_ekranSayfa = millis();
-        ekranSayfa = (ekranSayfa + 1) % 5;
+        ekranSayfa = (ekranSayfa + 1) % 6;
     }
 
     u8g2.clearBuffer();
@@ -279,10 +286,14 @@ void oledGuncelle() {
     } else if (ekranSayfa == 3) {
         etiket = "MQ-2";
         snprintf(deger, sizeof(deger), "%d", gazGenel);
-    } else {
+    } else if (ekranSayfa == 4) {
         etiket = "SES";
         snprintf(deger, sizeof(deger), "%.2f", sesSeviye);
+    } else {
+        etiket = "ISIK";
+        snprintf(deger, sizeof(deger), "%.1f", isik);
     }
+
 
     u8g2.setFont(u8g2_font_ncenB08_tr);
     u8g2.setCursor((72 - u8g2.getStrWidth(etiket)) / 2, 12);
@@ -377,8 +388,10 @@ void sensorOku() {
     cpuIsi   = cpuIsiOku();
     bosRam   = ESP.getFreeHeap();
     gazGenel = analogRead(MQ2_AO_PIN);
-    Serial.printf("[SENSOR] %.1fC %.0f%% %.1fhPa Ses:%.2f CPU:%.1fC RAM:%u Gaz:%d\n",
-                  sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam, gazGenel);
+    isik     = lightMeter.readLightLevel();
+    Serial.printf("[SENSOR] %.1fC %.0f%% %.1fhPa Ses:%.2f CPU:%.1fC RAM:%u Gaz:%d Isik:%.1flx\n",
+                  sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam, gazGenel, isik);
+
 
     if (bosRam < 30720) esp_restart();
     if (cpuIsi >= 75.0) esp_restart();
@@ -387,11 +400,12 @@ void sensorOku() {
 // --- Lokal MQTT Gonder (1 sn) ---
 void lokalMQTTGonder() {
     if (!lokalMQTT.connected()) return;
-    char payload[160];
-    snprintf(payload, sizeof(payload), "%s,%.1f,%.1f,%.1f,%.2f,%.1f,%u,%d",
-             cihazID, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam, gazGenel);
+    char payload[180];
+    snprintf(payload, sizeof(payload), "%s,%.1f,%.1f,%.1f,%.2f,%.1f,%u,%d,%.1f",
+             cihazID, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam, gazGenel, isik);
     lokalMQTT.publish(LOKAL_TOPIC_TELEM, payload);
 }
+
 
 // --- Adafruit IO Gonder (5 sn) ---
 void aioGonder() {
@@ -406,11 +420,12 @@ void vercelGonder() {
     HTTPClient http;
     http.begin(VERCEL_API_URL);
     http.addHeader("Content-Type", "application/json");
-    char json[512];
+    char json[600];
     snprintf(json, sizeof(json),
-             "{\"device_id\":\"%s\",\"mac\":\"%s\",\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d,\"gaz_genel\":%d}",
+             "{\"device_id\":\"%s\",\"mac\":\"%s\",\"sicaklik\":%.1f,\"nem\":%.1f,\"basinc\":%.1f,\"ses\":%.2f,\"cpu\":%.1f,\"ram\":%u,\"wifiRssi\":%d,\"mqttLokal\":%d,\"mqttAio\":%d,\"gaz_genel\":%d,\"isik\":%.1f}",
              cihazID, cihazMAC, sicaklik, nem, basinc, sesSeviye, cpuIsi, bosRam,
-             WiFi.RSSI(), lokalMQTT.connected() ? 1 : 0, aioMQTT.connected() ? 1 : 0, gazGenel);
+             WiFi.RSSI(), lokalMQTT.connected() ? 1 : 0, aioMQTT.connected() ? 1 : 0, gazGenel, isik);
+
     int code = http.POST(json);
     if (code >= 200 && code < 300) {
         Serial.printf("[VERCEL] Veri gonderildi: %d\n", code);
@@ -576,8 +591,14 @@ void setup() {
 
     bmeBaslat();
     i2sBaslat();
+    if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
+        Serial.println("[BH1750] Baslatildi");
+    } else {
+        Serial.println("[BH1750] Baslatilamadi!");
+    }
     analogReadResolution(12);
     analogSetPinAttenuation(MQ2_AO_PIN, ADC_11db);
+
 
     wifiBaglan();
 
