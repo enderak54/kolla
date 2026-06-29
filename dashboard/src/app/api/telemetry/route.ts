@@ -109,7 +109,13 @@ export async function POST(request: Request) {
         method: 'POST',
         headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
         body: JSON.stringify({ key: `son_sensor_${deviceId}`, value: JSON.stringify(sensorObj), type: 'sensor' }),
-      }).catch(() => {})
+      })
+      .then(async (r) => {
+        if (!r.ok) console.error("[TELEMETRY API] son_sensor error:", r.status, await r.text())
+        else console.log("[TELEMETRY API] son_sensor updated successfully")
+      })
+      .catch((e) => console.error("[TELEMETRY API] son_sensor network error:", e))
+
       ;(async () => {
         try {
           const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?key=eq.${encodeURIComponent('sensor_gecmis_' + deviceId)}&select=value`, { headers: anonHeaders })
@@ -120,14 +126,22 @@ export async function POST(request: Request) {
           }
           gecmis.push({ t: new Date().toISOString(), ...sensorObj })
           if (gecmis.length > 500) gecmis = gecmis.slice(-500)
-          await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
+          const rGecmis = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
             method: 'POST',
             headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
             body: JSON.stringify({ key: `sensor_gecmis_${deviceId}`, value: JSON.stringify(gecmis), type: 'sensor' }),
           })
-        } catch {}
+          if (!rGecmis.ok) {
+            console.error("[TELEMETRY API] sensor_gecmis error:", rGecmis.status, await rGecmis.text())
+          } else {
+            console.log("[TELEMETRY API] sensor_gecmis updated successfully")
+          }
+        } catch (e) {
+          console.error("[TELEMETRY API] sensor_gecmis catch error:", e)
+        }
       })()
     }
+
 
     await query('POST', 'kolla_telemetry', payload)
 
