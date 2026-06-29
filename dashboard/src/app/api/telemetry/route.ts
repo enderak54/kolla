@@ -50,7 +50,10 @@ export async function POST(request: Request) {
     let body: TelemetryData
     try {
       body = JSON.parse(raw)
+      console.log("[TELEMETRY API] Received body JSON:", JSON.stringify(body))
     } catch {
+      console.log("[TELEMETRY API] Received body non-JSON raw:", raw)
+
       const parts = raw.split(',')
       if (parts.length >= 6) {
         body = {
