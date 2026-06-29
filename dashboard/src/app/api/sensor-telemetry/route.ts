@@ -22,8 +22,9 @@ export async function POST(request: Request) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
       method: 'POST',
       headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
-      body: JSON.stringify({ key: `son_sensor_${device_id}`, value: JSON.stringify(sensorObj), type: 'sensor' }),
+      body: JSON.stringify([{ key: `son_sensor_${device_id}`, value: JSON.stringify(sensorObj), type: 'sensor' }]),
     })
+
     if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`) }
 
     return Response.json({ ok: true, sensors: sensorObj })

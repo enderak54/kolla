@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
         method: 'POST',
         headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
-        body: JSON.stringify({ key: `son_sensor_${deviceId}`, value: JSON.stringify(sensorObj), type: 'sensor' }),
+        body: JSON.stringify([{ key: `son_sensor_${deviceId}`, value: JSON.stringify(sensorObj), type: 'sensor' }]),
       })
       .then(async (r) => {
         if (!r.ok) console.error("[TELEMETRY API] son_sensor error:", r.status, await r.text())
@@ -129,8 +129,9 @@ export async function POST(request: Request) {
           const rGecmis = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
             method: 'POST',
             headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
-            body: JSON.stringify({ key: `sensor_gecmis_${deviceId}`, value: JSON.stringify(gecmis), type: 'sensor' }),
+            body: JSON.stringify([{ key: `sensor_gecmis_${deviceId}`, value: JSON.stringify(gecmis), type: 'sensor' }]),
           })
+
           if (!rGecmis.ok) {
             console.error("[TELEMETRY API] sensor_gecmis error:", rGecmis.status, await rGecmis.text())
           } else {
