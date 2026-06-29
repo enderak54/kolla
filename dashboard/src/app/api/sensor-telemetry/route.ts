@@ -19,7 +19,8 @@ export async function POST(request: Request) {
       sensorObj[s.metric] = s.value
     }
 
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?on_conflict=key`, {
+
       method: 'POST',
       headers: { ...headers, Prefer: 'resolution=merge-duplicates' },
       body: JSON.stringify([{ key: `son_sensor_${device_id}`, value: JSON.stringify(sensorObj), type: 'sensor' }]),

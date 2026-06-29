@@ -105,11 +105,12 @@ export async function POST(request: Request) {
     }
     if (Object.keys(sensorObj).length > 0 && anonKey) {
       const anonHeaders = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}`, 'Content-Type': 'application/json' }
-      fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
+      fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?on_conflict=key`, {
         method: 'POST',
         headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
         body: JSON.stringify([{ key: `son_sensor_${deviceId}`, value: JSON.stringify(sensorObj), type: 'sensor' }]),
       })
+
       .then(async (r) => {
         if (!r.ok) console.error("[TELEMETRY API] son_sensor error:", r.status, await r.text())
         else console.log("[TELEMETRY API] son_sensor updated successfully")
@@ -126,11 +127,12 @@ export async function POST(request: Request) {
           }
           gecmis.push({ t: new Date().toISOString(), ...sensorObj })
           if (gecmis.length > 500) gecmis = gecmis.slice(-500)
-          const rGecmis = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar`, {
+          const rGecmis = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?on_conflict=key`, {
             method: 'POST',
             headers: { ...anonHeaders, Prefer: 'resolution=merge-duplicates' },
             body: JSON.stringify([{ key: `sensor_gecmis_${deviceId}`, value: JSON.stringify(gecmis), type: 'sensor' }]),
           })
+
 
           if (!rGecmis.ok) {
             console.error("[TELEMETRY API] sensor_gecmis error:", rGecmis.status, await rGecmis.text())
