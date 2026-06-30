@@ -214,15 +214,15 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       {(() => {
         const alerts: string[] = []
         if (alertSicaklik) {
-          alerts.push(`Sıcaklık uyarısı! ${data!.sicaklik.toFixed(1)}°C (limit: ${thresholdMap.sicaklik.min_val}-${thresholdMap.sicaklik.max_val}°C)`)
+          alerts.push(`Sıcaklık uyarısı! ${(data!.sicaklik ?? 0).toFixed(1)}°C (limit: ${thresholdMap.sicaklik.min_val}-${thresholdMap.sicaklik.max_val}°C)`)
           bildirimGonder('esik_ihlali', `Sıcaklık eşik ihlali - ${cihazAdi || deviceId}`, `${data!.sicaklik.toFixed(1)}°C (limit: ${thresholdMap.sicaklik.min_val}-${thresholdMap.sicaklik.max_val})`)
         }
         if (thresholdMap.nem?.enabled && data && (data.nem < thresholdMap.nem.min_val || data.nem > thresholdMap.nem.max_val)) {
-          alerts.push(`Nem uyarısı! %${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
+          alerts.push(`Nem uyarısı! %${(data.nem ?? 0).toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
           bildirimGonder('esik_ihlali', `Nem eşik ihlali - ${cihazAdi || deviceId}`, `%${data.nem.toFixed(0)} (limit: %${thresholdMap.nem.min_val}-${thresholdMap.nem.max_val})`)
         }
         if (thresholdMap.ses?.enabled && data && (data.ses < thresholdMap.ses.min_val || data.ses > thresholdMap.ses.max_val)) {
-          alerts.push(`Mikrofon uyarısı! ${data.ses.toFixed(3)} (limit: ${thresholdMap.ses.min_val}-${thresholdMap.ses.max_val})`)
+          alerts.push(`Mikrofon uyarısı! ${(data.ses ?? 0).toFixed(3)} (limit: ${thresholdMap.ses.min_val}-${thresholdMap.ses.max_val})`)
           bildirimGonder('esik_ihlali', `Mikrofon eşik ihlali - ${cihazAdi || deviceId}`, `${data.ses.toFixed(3)} (limit: ${thresholdMap.ses.min_val}-${thresholdMap.ses.max_val})`)
         }
         if (thresholdMap.gaz_genel?.enabled) {
@@ -261,12 +261,12 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       {data ? (
         <div className="w-full max-w-4xl mb-8">
           <div className="grid grid-cols-3 gap-4 mb-2">
-            <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
-            <SensorCard label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem} />
-            <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
+            <SensorCard label="Sıcaklık" value={`${(data.sicaklik ?? 0).toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik ?? 0} />
+            <SensorCard label="Nem" value={`${(data.nem ?? 0).toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem ?? 0} />
+            <SensorCard label="Basınç" value={`${(data.basinc ?? 0).toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc ?? 0} />
           </div>
           <div className={`grid gap-4 mb-2 ${sensorData.isik != null ? 'grid-cols-3' : 'grid-cols-2'}`}>
-            <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
+            <Card label="Ses" value={(data.ses ?? 0).toFixed(3)} color="yellow" />
             {sensorData.isik != null && <Card label="Işık" value={`${sensorData.isik.toFixed(1)} lx`} color="yellow" />}
             <div className="bg-gray-800 rounded-2xl p-3 border border-gray-700 flex flex-col gap-1">
               <div className="flex items-center justify-between">
@@ -288,8 +288,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4 mb-2">
-            <Card label="CPU" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
-            <Card label="RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} color="purple" />
+            <Card label="CPU" value={`${(data.cpu ?? 0).toFixed(1)}°C`} color="orange" />
+            <Card label="RAM" value={`${((data.ram ?? 0) / 1024).toFixed(0)} KB`} color="purple" />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
             {kapiKontrol !== 'kapali' && (
