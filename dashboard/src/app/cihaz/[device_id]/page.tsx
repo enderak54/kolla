@@ -25,7 +25,6 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const [kameraAktif, setKameraAktif] = useState(false)
   const [aiYorum, setAiYorum] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
-  const [gazSensorTip, setGazSensorTip] = useState('MQ-2')
   const [kayitAktif, setKayitAktif] = useState(true)
   const [kayitAyrinti, setKayitAyrinti] = useState<Record<string, boolean>>({})
 
@@ -69,17 +68,6 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
     setTimeout(() => setGonderildi(prev => { const n = new Set(prev); n.delete(key); return n }), 300000)
   }
 
-  const gazSensorTipDegistir = async (tip: string) => {
-    setGazSensorTip(tip)
-    try {
-      await fetch('/api/ayarlar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anahtar: `gaz_sensor_tip_${deviceId}`, deger: tip, kategori: 'sensor' }),
-      })
-    } catch {}
-  }
-
   useEffect(() => {
     const fetchAll = async () => {
       try {
@@ -116,11 +104,6 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         if (Array.isArray(ka)) {
           setKameraAktif(ka.find((a: any) => a.anahtar === `kamera_aktif_${deviceId}`)?.deger === 'true')
         }
-        try {
-          const tipRes = await fetch(`/api/ayarlar?anahtar_prefix=gaz_sensor_tip_${deviceId}`)
-          const tipData = await tipRes.json()
-          if (Array.isArray(tipData) && tipData.length > 0 && tipData[0].deger) setGazSensorTip(tipData[0].deger)
-        } catch {}
       } catch { setError('Veri alinamadi') }
     }
     fetchAll()
@@ -268,24 +251,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           <div className={`grid gap-4 mb-2 ${sensorData.isik != null ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <Card label="Ses" value={(data.ses ?? 0).toFixed(3)} color="yellow" />
             {sensorData.isik != null && <Card label="Işık" value={`${sensorData.isik.toFixed(1)} lx`} color="yellow" />}
-            <div className="bg-gray-800 rounded-2xl p-3 border border-gray-700 flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-gray-500 uppercase tracking-wide">Gaz</span>
-                <select value={gazSensorTip} onChange={e => gazSensorTipDegistir(e.target.value)}
-                  className="text-[9px] bg-gray-700 text-gray-300 rounded border border-gray-600 px-1 py-0.5 cursor-pointer">
-                  {['MQ-2','MQ-135','MQ-7','MQ-9','MQ-4','MQ-5'].map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              {gazMetrics.filter(gm => sensorValues(gm) != null).map(gm => (
-                <div key={gm} className="flex justify-between items-center">
-                  <span className="text-xs text-gray-400">{gazEtiket[gm]}</span>
-                  <span className="text-sm font-semibold" style={{color: {gaz_genel:'#F97316',lpg:'#A855F7',co:'#EF4444',duman:'#6B7280',metan:'#22C55E',hidrojen:'#3B82F6'}[gm]}}>{sensorValues(gm)}<span className="text-[10px] text-gray-600 ml-0.5">ppm</span></span>
-                </div>
-              ))}
-              {gazMetrics.every(gm => sensorValues(gm) == null) && <span className="text-xs text-gray-500">Veri yok</span>}
-            </div>
+            {(() => { const g = gazMetrics.find(gm => sensorValues(gm) != null); return g != null ? <Card label="Gaz" value={`${sensorValues(g)} ppm`} color="orange" /> : null })()}
           </div>
           <div className="grid grid-cols-2 gap-4 mb-2">
             <Card label="CPU" value={`${(data.cpu ?? 0).toFixed(1)}°C`} color="orange" />
