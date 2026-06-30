@@ -51,6 +51,8 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
   const [oledDir, setOledDir] = useState(0)
   const [sensors, setSensors] = useState<SensorInstance[]>([])
   const [kapiKontrol, setKapiKontrol] = useState('kapali')
+  const [kayitAktif, setKayitAktif] = useState(true)
+  const [kayitAyrinti, setKayitAyrinti] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -80,7 +82,23 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
       finally { setLoading(false) }
     }
     fetchConfig()
+    const fetchKayit = async () => {
+      try {
+        const res = await fetch(`/api/ayarlar?anahtar_prefix=kayit_${deviceId}`)
+        const rows = await res.json()
+        if (!Array.isArray(rows)) return
+        const k = rows.find((r: any) => r.anahtar === `kayit_aktif_${deviceId}`)
+        if (k) setKayitAktif(k.deger === 'true')
+        const d = rows.find((r: any) => r.anahtar === `kayit_ayrinti_${deviceId}`)
+        if (d) { try { setKayitAyrinti(JSON.parse(d.deger)) } catch {} }
+      } catch {}
+    }
+    fetchKayit()
   }, [deviceId])
+
+  const kayitAyrintiToggle = (metric: string) => {
+    setKayitAyrinti(prev => ({ ...prev, [metric]: !prev[metric] }))
+  }
 
   const sensorEkle = (tip: string) => {
     const t = sensorTipleri.find(s => s.tip === tip)
@@ -117,7 +135,20 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
         }),
       })
       const data = await res.json()
-      setMesaj(data.ok ? 'Kaydedildi' : 'Hata: ' + (data.error || ''))
+      if (!data.ok) { setMesaj('Hata: ' + (data.error || '')); setSaving(false); return }
+      await Promise.all([
+        fetch('/api/ayarlar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ anahtar: `kayit_aktif_${deviceId}`, deger: String(kayitAktif), kategori: 'cihaz' }),
+        }),
+        fetch('/api/ayarlar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ anahtar: `kayit_ayrinti_${deviceId}`, deger: JSON.stringify(kayitAyrinti), kategori: 'cihaz' }),
+        }),
+      ])
+      setMesaj('Kaydedildi')
     } catch { setMesaj('Kayit hatasi') }
     finally { setSaving(false) }
   }
@@ -175,6 +206,38 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                   </select>
                   <p className="text-[10px] text-gray-500 mt-1">Yazılım: sıcaklık artışından algıla. Donanım: ESP32'ye bağlı reed switch.</p>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-2xl p-5 border border-gray-700">
+              <h2 className="text-lg font-semibold mb-4">Geçmiş Kaydı</h2>
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-sm text-gray-400">Ana Kayıt</span>
+                <button onClick={() => setKayitAktif(!kayitAktif)}
+                  className={`w-10 h-6 rounded-full relative transition-colors ${kayitAktif ? 'bg-emerald-600' : 'bg-gray-600'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${kayitAktif ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                </button>
+                <span className={`text-sm font-medium ${kayitAktif ? 'text-emerald-400' : 'text-gray-500'}`}>{kayitAktif ? 'Açık' : 'Kapalı'}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'sicaklik', label: 'Sıcaklık' },
+                  { key: 'nem', label: 'Nem' },
+                  { key: 'basinc', label: 'Basınç' },
+                  { key: 'ses', label: 'Ses' },
+                  { key: 'isik', label: 'Işık' },
+                  { key: 'gaz_genel', label: 'Gaz' },
+                  { key: 'cpu', label: 'CPU' },
+                  { key: 'ram', label: 'RAM' },
+                ].map(m => {
+                  const aktif = (kayitAyrinti[m.key] ?? true) && kayitAktif
+                  return (
+                    <button key={m.key} onClick={() => kayitAyrintiToggle(m.key)}
+                      className={`px-3 py-1.5 rounded text-xs border transition-colors ${aktif ? 'bg-emerald-900/30 border-emerald-700 text-emerald-300' : 'bg-gray-800 border-gray-700 text-gray-600'}`}>
+                      {m.label}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
