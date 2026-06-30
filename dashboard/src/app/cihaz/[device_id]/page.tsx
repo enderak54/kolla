@@ -197,20 +197,19 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           </button>
           <span className={`text-xs font-medium ${kayitAktif ? 'text-emerald-400' : 'text-gray-500'}`}>{kayitAktif ? 'Açık' : 'Kapalı'}</span>
         </div>
-        {kayitAktif && data && (
-          <div className="flex flex-wrap gap-2">
-            {['sicaklik','nem','basinc','ses','cpu','ram',...Object.keys(sensorData)].filter(m => m !== 'kapi').map(m => {
-              const etiket: Record<string, string> = { sicaklik:'Sıcaklık', nem:'Nem', basinc:'Basınç', ses:'Ses', cpu:'CPU', ram:'RAM', gaz_genel:'Gaz', lpg:'LPG', co:'CO', duman:'Duman', metan:'Metan', hidrojen:'Hidrojen', isik:'Işık', lux:'Lüks', seviye:'Seviye' }
-              const acik = kayitAyrinti[m] ?? true
-              return (
-                <button key={m} onClick={() => kayitAyrintiToggle(m)}
-                  className={`px-2 py-1 rounded text-[10px] border transition-colors ${acik ? 'bg-emerald-900/30 border-emerald-700 text-emerald-300' : 'bg-gray-800 border-gray-700 text-gray-600'}`}>
-                  {etiket[m] || m}
-                </button>
-              )
-            })}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {['sicaklik','nem','basinc','ses','cpu','ram',...Object.keys(sensorData)].filter(m => m !== 'kapi').map(m => {
+            const etiket: Record<string, string> = { sicaklik:'Sıcaklık', nem:'Nem', basinc:'Basınç', ses:'Ses', cpu:'CPU', ram:'RAM', gaz_genel:'Gaz', lpg:'LPG', co:'CO', duman:'Duman', metan:'Metan', hidrojen:'Hidrojen', isik:'Işık', lux:'Lüks', seviye:'Seviye' }
+            const ayarli = kayitAyrinti[m] ?? true
+            const aktifKayit = kayitAktif && ayarli
+            return (
+              <button key={m} onClick={() => kayitAyrintiToggle(m)}
+                className={`px-2 py-1 rounded text-[10px] border transition-colors ${aktifKayit ? 'bg-emerald-900/30 border-emerald-700 text-emerald-300' : 'bg-gray-800 border-gray-700 text-gray-600'}`}>
+                {etiket[m] || m}
+              </button>
+            )
+          })}
+        </div>
       </div>
       {(() => {
         const alerts: string[] = []

@@ -159,8 +159,9 @@ export function OzetKarti({ data }: { data: TelemetryData[] }) {
   const nemMin = nemVals.length ? Math.min(...nemVals) : 0; const nemMax = nemVals.length ? Math.max(...nemVals) : 0; const nemOrt = ort(nemVals)
   const basincVals = data.map(d => d.basinc).filter((v): v is number => v != null)
   const basMin = basincVals.length ? Math.min(...basincVals) : 0; const basMax = basincVals.length ? Math.max(...basincVals) : 0; const basOrt = ort(basincVals)
-  const sesVals = data.map(d => d.ses).filter((v): v is number => v != null)
+  const sesVals = data.map(d => d.ses).filter((v): v is number => v != null && v > 0)
   const sesOrt = ort(sesVals)
+  const sesVar = sesVals.length > 0
   return (
     <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
       <h3 className="text-sm font-medium text-gray-400 mb-3">Son 24s Özet</h3>
@@ -180,10 +181,12 @@ export function OzetKarti({ data }: { data: TelemetryData[] }) {
           <p className="text-green-300 text-lg font-semibold">{basOrt.toFixed(0)} hPa</p>
           <p className="text-[10px] text-gray-600">{basMin.toFixed(0)} - {basMax.toFixed(0)}</p>
         </div>
+        {sesVar && (
         <div>
           <span className="text-[10px] text-gray-500">Ses</span>
           <p className="text-yellow-300 text-lg font-semibold">{sesOrt.toFixed(2)}</p>
         </div>
+        )}
         <div>
           <span className="text-[10px] text-gray-500">Veri</span>
           <p className="text-gray-300 text-lg font-semibold">{data.length}</p>
