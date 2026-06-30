@@ -243,13 +243,12 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           }
         }
         if (data) {
-          if (!aktif) {
+          if (!aktif && prevBaglanti.current === true) {
             alerts.push('Cihaz bağlantısı kesildi! Son veri 15sn önce.')
-            if (prevBaglanti.current === true) {
-              bildirimGonder('cihaz_kopma', `Cihaz bağlantısı koptu - ${cihazAdi || deviceId}`, `Son veri: ${new Date(data.timestamp).toLocaleString('tr-TR')}`)
-            }
+            bildirimGonder('cihaz_kopma', `Cihaz bağlantısı koptu - ${cihazAdi || deviceId}`, `Son veri: ${new Date(data.timestamp).toLocaleString('tr-TR')}`)
           }
           if (aktif && prevBaglanti.current === false) {
+            alerts.push('Cihaz bağlantısı geldi!')
             bildirimGonder('cihaz_geldi', `Cihaz bağlantısı geldi - ${cihazAdi || deviceId}`, 'Cihaz tekrar çevrimiçi')
           }
           prevBaglanti.current = aktif
