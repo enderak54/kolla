@@ -173,14 +173,12 @@ export async function POST(request: Request) {
       } catch {}
     }
 
-    if (kayitAktif) {
-      if (Object.keys(aktifMetric).length > 0) {
-        for (const k of Object.keys(payload)) {
-          if (k in aktifMetric && !aktifMetric[k]) delete payload[k]
-        }
+    if (Object.keys(aktifMetric).length > 0) {
+      for (const k of Object.keys(payload)) {
+        if (k in aktifMetric && !aktifMetric[k]) delete payload[k]
       }
-      await query('POST', 'kolla_telemetry', payload)
     }
+    await query('POST', 'kolla_telemetry', payload)
 
     return Response.json({ ok: true })
   } catch (e) {
