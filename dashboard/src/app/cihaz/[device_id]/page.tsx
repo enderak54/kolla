@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState, use, useRef } from 'react'
 import iller from '@/data/turkiye-il-ilce.json'
 import { TelemetryData, Threshold, Ayar, SensorCard, Card, ThresholdCard, MiniChart, StatusBadge, AyarSatir, SinyalGosterge, OzetKarti, AlarmPaneli, CSVExport } from '@/app/components/shared'
 import { kollaYorum } from '@/lib/gemini'
@@ -40,8 +40,10 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
     } catch {}
   }
 
+  const prevBaglanti = useRef<boolean | null>(null)
+
   const bildirimGonder = async (tip: string, baslik: string, mesaj: string) => {
-    const key = `${tip}-${Date.now()}`
+    const key = `${tip}-${deviceId}`
     if (gonderildi.has(key)) return
     setGonderildi(prev => new Set(prev).add(key))
     try {
@@ -209,9 +211,15 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
             bildirimGonder('esik_ihlali', `${gazEtiket[gm]} alarmı - ${cihazAdi || deviceId}`, `${val} ppm (limit: ${t.min_val}-${t.max_val})`)
           }
         }
-        if (data && !aktif) {
-          alerts.push('Cihaz bağlantısı kesildi! Son veri 15sn önce.')
-          bildirimGonder('cihaz_kopma', `Cihaz bağlantısı koptu - ${cihazAdi || deviceId}`, `Son veri: ${new Date(data.timestamp).toLocaleString('tr-TR')}`)
+        if (data) {
+          if (!aktif && prevBaglanti.current !== false) {
+            alerts.push('Cihaz bağlantısı kesildi! Son veri 15sn önce.')
+            bildirimGonder('cihaz_kopma', `Cihaz bağlantısı koptu - ${cihazAdi || deviceId}`, `Son veri: ${new Date(data.timestamp).toLocaleString('tr-TR')}`)
+          }
+          if (aktif && prevBaglanti.current === false) {
+            bildirimGonder('cihaz_geldi', `Cihaz bağlantısı geldi - ${cihazAdi || deviceId}`, 'Cihaz tekrar çevrimiçi')
+          }
+          prevBaglanti.current = aktif
         }
         if (kapiAcik) {
           alerts.push('Kapı açık!')
