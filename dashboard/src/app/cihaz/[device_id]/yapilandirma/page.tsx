@@ -219,7 +219,7 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                 </button>
                 <span className={`text-sm font-medium ${kayitAktif ? 'text-emerald-400' : 'text-gray-500'}`}>{kayitAktif ? 'Açık' : 'Kapalı'}</span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-3">
                 {[
                   { key: 'sicaklik', label: 'Sıcaklık' },
                   { key: 'nem', label: 'Nem' },
@@ -229,15 +229,15 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                   { key: 'gaz_genel', label: 'Gaz' },
                   { key: 'cpu', label: 'CPU' },
                   { key: 'ram', label: 'RAM' },
-                ].map(m => {
-                  const aktif = (kayitAyrinti[m.key] ?? true) && kayitAktif
-                  return (
-                    <button key={m.key} onClick={() => kayitAyrintiToggle(m.key)}
-                      className={`px-3 py-1.5 rounded text-xs border transition-colors ${aktif ? 'bg-emerald-900/30 border-emerald-700 text-emerald-300' : 'bg-gray-800 border-gray-700 text-gray-600'}`}>
-                      {m.label}
+                ].map(m => (
+                  <div key={m.key} className="flex items-center gap-3">
+                    <button onClick={() => kayitAyrintiToggle(m.key)}
+                      className={`w-10 h-6 rounded-full relative transition-colors ${(kayitAyrinti[m.key] ?? true) ? 'bg-emerald-600' : 'bg-gray-600'}`}>
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${(kayitAyrinti[m.key] ?? true) ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
                     </button>
-                  )
-                })}
+                    <span className={`text-sm ${(kayitAyrinti[m.key] ?? true) ? 'text-emerald-300' : 'text-gray-500'}`}>{m.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
