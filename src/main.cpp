@@ -132,13 +132,23 @@ float sesOkuRMS() {
     // Her iki kanalin RMS'ini hesaplayip buyugunu dondur.
     int32_t buf[I2S_BUFFER_LEN * 2];  // stereo: 2x tampon
     size_t okunan = 0;
-    if (i2s_read(I2S_PORT, buf, sizeof(buf), &okunan, 50) != ESP_OK || okunan == 0) return 0;
+    esp_err_t err = i2s_read(I2S_PORT, buf, sizeof(buf), &okunan, 50);
+    if (err != ESP_OK) {
+        Serial.printf("[I2S] OKUMA HATASI: %d\n", err);
+        return 0;
+    }
+    if (okunan == 0) {
+        Serial.println("[I2S] Okunan 0");
+        return 0;
+    }
     int adet = okunan / 4;
     if (adet < 2) return 0;
 
     static int sira = 0;
     if (++sira % 5 == 0) {
-        Serial.printf("[I2S] Sol:%d Sag:%d\n", buf[0], buf[1]);
+        int nonZero = 0;
+        for (int i = 0; i < min(adet, 64); i++) if (buf[i] != 0 && buf[i] != -1) nonZero++;
+        Serial.printf("[I2S] okunan=%d ilk4:%d %d %d %d nonZero=%d\n", okunan, buf[0], buf[1], buf[2], buf[3], nonZero);
     }
 
     double toplamSol = 0, toplamSag = 0;
@@ -604,7 +614,11 @@ void setup() {
     u8g2.sendBuffer();
 
     bmeBaslat();
-    i2sBaslat();
+    if (i2sBaslat()) {
+        Serial.println("[I2S] Baslatildi");
+    } else {
+        Serial.println("[I2S] BASLATILAMADI! INMP441 bagli degil veya pin hatasi");
+    }
     if (lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
         Serial.println("[BH1750] Baslatildi");
     } else {
