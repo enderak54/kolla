@@ -99,12 +99,14 @@ float isik       = 0;
 
 
 // --- I2S Baslat ---
+// INMP441: L/R=GND ise sol kanal, L/R=VDD ise sag kanal.
+// Ikisini de okuyup max aliyoruz — kablolama farketmez.
 bool i2sBaslat() {
     i2s_config_t cfg = {
         .mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX),
         .sample_rate = 16000,
         .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,
-        .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,
+        .channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,  // her iki kanalı oku
         .communication_format = I2S_COMM_FORMAT_STAND_I2S,
         .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
         .dma_buf_count = 4,
@@ -119,26 +121,38 @@ bool i2sBaslat() {
     };
     if (i2s_driver_install(I2S_PORT, &cfg, 0, NULL) != ESP_OK) return false;
     if (i2s_set_pin(I2S_PORT, &pin) != ESP_OK) return false;
-    i2s_set_clk(I2S_PORT, 16000, I2S_BITS_PER_SAMPLE_32BIT, I2S_CHANNEL_MONO);
+    i2s_set_clk(I2S_PORT, 16000, I2S_BITS_PER_SAMPLE_32BIT, I2S_CHANNEL_STEREO);
+    delay(250);  // INMP441 stabil olana kadar bekle
     return true;
 }
 
 float sesOkuRMS() {
-    int32_t buf[I2S_BUFFER_LEN];
+    // Stereo modda: cift sayili index=sol kanal, tek sayili=sag kanal
+    // INMP441 hangi kanaldaysa orada veri gelir, digeri sifir olur.
+    // Her iki kanalin RMS'ini hesaplayip buyugunu dondur.
+    int32_t buf[I2S_BUFFER_LEN * 2];  // stereo: 2x tampon
     size_t okunan = 0;
     if (i2s_read(I2S_PORT, buf, sizeof(buf), &okunan, 50) != ESP_OK || okunan == 0) return 0;
     int adet = okunan / 4;
-    if (adet == 0) return 0;
+    if (adet < 2) return 0;
+
     static int sira = 0;
-    if (++sira % 5 == 0 && adet > 0) {
-        Serial.printf("[I2S] ilk 4: %d %d %d %d\n", buf[0], buf[1], buf[2], buf[3]);
+    if (++sira % 5 == 0) {
+        Serial.printf("[I2S] Sol:%d Sag:%d\n", buf[0], buf[1]);
     }
-    double toplam = 0;
-    for (int i = 0; i < adet; i++) {
-        double s = (double)(buf[i] >> 8) / 8388608.0;
-        toplam += s * s;
+
+    double toplamSol = 0, toplamSag = 0;
+    int ciftSayisi = adet / 2;
+    for (int i = 0; i < adet - 1; i += 2) {
+        // INMP441 24-bit MSB hizali 32-bit frame: ust 24 bit kullanilir
+        double sol = (double)(buf[i]   >> 8) / 8388608.0;
+        double sag = (double)(buf[i+1] >> 8) / 8388608.0;
+        toplamSol += sol * sol;
+        toplamSag += sag * sag;
     }
-    return (float)(sqrt(toplam / adet) * 100.0);
+    float rmsSol = (float)(sqrt(toplamSol / ciftSayisi) * 100.0);
+    float rmsSag = (float)(sqrt(toplamSag / ciftSayisi) * 100.0);
+    return rmsSol > rmsSag ? rmsSol : rmsSag;
 }
 
 // --- BME280 ---

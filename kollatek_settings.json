@@ -1,0 +1,21 @@
+{
+    "value":  [
+                  {
+                      "id":  2,
+                      "key":  "sensor_gecmis_KOLLA-E94AA06721",
+                      "value":  "[{\"t\":\"2026-06-25T06:29:52.310Z\",\"gaz_genel\":619}]",
+                      "type":  "sensor",
+                      "created_at":  "2026-06-25T06:29:52.539272+00:00",
+                      "updated_at":  "2026-06-25T06:29:52.539272+00:00"
+                  },
+                  {
+                      "id":  1,
+                      "key":  "son_sensor_KOLLA-E94AA06721",
+                      "value":  "{\"gaz_genel\":619}",
+                      "type":  "sensor",
+                      "created_at":  "2026-06-25T06:29:52.153389+00:00",
+                      "updated_at":  "2026-06-25T06:29:52.153389+00:00"
+                  }
+              ],
+    "Count":  2
+}
