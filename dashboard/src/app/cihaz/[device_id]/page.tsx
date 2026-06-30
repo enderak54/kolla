@@ -170,6 +170,13 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         </div>
         <StatusBadge label="MQTT Lokal" active={data?.mqttLokal === 1} />
         <StatusBadge label="Adafruit IO" active={data?.mqttAio === 1} />
+        {data && (
+          <div className="flex items-center gap-3 px-3 py-1.5 rounded-full text-sm bg-gray-800 border border-gray-700">
+            <span className="text-orange-300 font-semibold">{(data.cpu ?? 0).toFixed(1)}°C</span>
+            <span className="text-gray-600">|</span>
+            <span className="text-purple-300 font-semibold">{((data.ram ?? 0) / 1024).toFixed(0)} KB</span>
+          </div>
+        )}
       </div>
       <div className="w-full max-w-4xl mb-4 px-1">
         <div className="flex items-center gap-3 mb-2">
@@ -250,12 +257,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           </div>
           <div className={`grid gap-4 mb-2 ${sensorData.isik != null ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <Card label="Ses" value={(data.ses ?? 0).toFixed(3)} color="yellow" />
-            {sensorData.isik != null && <Card label="Işık" value={`${sensorData.isik.toFixed(1)} lx`} color="yellow" />}
+            {sensorData.isik != null &&             <Card label="Işık" value={`${sensorData.isik.toFixed(1)} lx`} color="orange" />}
             {(() => { const g = gazMetrics.find(gm => sensorValues(gm) != null); return g != null ? <Card label="Gaz" value={`${sensorValues(g)} ppm`} color="orange" /> : null })()}
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-2">
-            <Card label="CPU" value={`${(data.cpu ?? 0).toFixed(1)}°C`} color="orange" />
-            <Card label="RAM" value={`${((data.ram ?? 0) / 1024).toFixed(0)} KB`} color="purple" />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
             {kapiKontrol !== 'kapali' && (
@@ -278,10 +281,31 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       ) : (
         <p className="text-gray-400 mb-8">Veri bekleniyor...</p>
       )}
-      {aiYorum && (
-        <div className="w-full max-w-4xl mb-4 p-4 rounded-2xl border border-emerald-700 bg-emerald-950/20">
-          <p className="text-sm font-semibold text-emerald-400 mb-1">🤖 Kolla Beni YZ</p>
-          <p className="text-sm text-gray-300 leading-relaxed">{aiYorum}</p>
+      {history.length > 0 && (
+        <div className="w-full max-w-4xl mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[ 
+              { key: 'sicaklik', dataKey: 'sicaklik', color: '#EF4444', name: 'Sıcaklık °C' },
+              { key: 'nem', dataKey: 'nem', color: '#0EA5E9', name: 'Nem %' },
+              { key: 'basinc', dataKey: 'basinc', color: '#10B981', name: 'Basınç hPa' },
+              { key: 'ses', dataKey: 'ses', color: '#F59E0B', name: 'Ses' },
+            ].map(m => (
+              <div key={m.key}>
+                <MiniChart data={filteredHistory} dataKey={m.dataKey} color={m.color} name={m.name} />
+                {thresholds.filter(t => t.metric === m.key).map(t => (
+                  <ThresholdCard key={t.metric} threshold={t} onUpdate={(upd) => {
+                    fetch('/api/thresholds', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(upd) })
+                    setThresholds(prev => prev.map(p => p.metric === upd.metric ? { ...p, ...upd } : p))
+                  }} />
+                ))}
+              </div>
+            ))}
+            {sensorGecmis.length > 0 && ['isik','gaz_genel'].filter(gm => sensorData[gm] != null && sensorGecmis.some((e: any) => e[gm] != null)).map(gm => (
+                <div key={gm}>
+                  <MiniChart data={sensorGecmis} dataKey={gm} color={gm === 'isik' ? '#FBBF24' : '#F97316'} name={gm === 'isik' ? 'Işık lx' : 'Gaz ppm'} />
+                </div>
+            ))}
+          </div>
         </div>
       )}
       {history.length > 0 && (
@@ -303,30 +327,12 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
             <span className="flex-1" />
             <CSVExport data={filteredHistory} filename={`kolla_${deviceId}_${Date.now()}.csv`} />
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[ 
-              { key: 'sicaklik', dataKey: 'sicaklik', color: '#EF4444', name: 'Sıcaklık °C' },
-              { key: 'nem', dataKey: 'nem', color: '#0EA5E9', name: 'Nem %' },
-              { key: 'basinc', dataKey: 'basinc', color: '#10B981', name: 'Basınç hPa' },
-              { key: 'ses', dataKey: 'ses', color: '#F59E0B', name: 'Ses' },
-            ].map(m => (
-              <div key={m.key}>
-                <MiniChart data={filteredHistory} dataKey={m.dataKey} color={m.color} name={m.name} />
-                {thresholds.filter(t => t.metric === m.key).map(t => (
-                  <ThresholdCard key={t.metric} threshold={t} onUpdate={(upd) => {
-                    fetch('/api/thresholds', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(upd) })
-                    setThresholds(prev => prev.map(p => p.metric === upd.metric ? { ...p, ...upd } : p))
-                  }} />
-                ))}
-              </div>
-            ))}
-            {sensorGecmis.length > 0 && Object.keys(sensorData).filter(gm => !['sicaklik','nem','basinc','ses','cpu','ram','kapi'].includes(gm) && sensorGecmis.some((e: any) => e[gm] != null)).map(gm => (
-                <div key={gm}>
-                  <MiniChart data={sensorGecmis} dataKey={gm} color={{ gaz_genel: '#F97316', lpg: '#A855F7', co: '#EF4444', duman: '#6B7280', metan: '#22C55E', hidrojen: '#3B82F6', isik: '#FBBF24', lux: '#FBBF24' }[gm] || '#F97316'} name={`${gazEtiket[gm] || (gm === 'isik' ? 'Işık' : gm.toUpperCase())}${gm === 'isik' || gm === 'lux' ? ' lx' : ' ppm'}`} />
-                </div>
-            ))}
-
-          </div>
+        </div>
+      )}
+      {aiYorum && (
+        <div className="w-full max-w-4xl mb-4 p-4 rounded-2xl border border-emerald-700 bg-emerald-950/20">
+          <p className="text-sm font-semibold text-emerald-400 mb-1">🤖 Kolla Beni YZ</p>
+          <p className="text-sm text-gray-300 leading-relaxed">{aiYorum}</p>
         </div>
       )}
       {kameraAktif && (
