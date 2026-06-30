@@ -92,6 +92,7 @@ export async function POST(request: Request) {
     if (body.kapi !== undefined) payload.kapi = body.kapi
 
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const aktifMetric: Record<string, boolean> = {}
 
     const gazAlani = (k: string) => ['gaz_genel','lpg','co','duman','metan','hidrojen','isik'].includes(k)
     const sensorObj: Record<string, any> = {}
@@ -102,6 +103,11 @@ export async function POST(request: Request) {
     }
     for (const k of Object.keys(body)) {
       if (gazAlani(k) && typeof (body as any)[k] === 'number') sensorObj[k] = (body as any)[k]
+    }
+    if (Object.keys(aktifMetric).length > 0) {
+      for (const k of Object.keys(sensorObj)) {
+        if (k in aktifMetric && !aktifMetric[k]) delete sensorObj[k]
+      }
     }
     if (Object.keys(sensorObj).length > 0 && anonKey) {
       const anonHeaders = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}`, 'Content-Type': 'application/json' }
@@ -150,15 +156,29 @@ export async function POST(request: Request) {
     if (anonKey) {
       try {
         const h = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}`, 'Content-Type': 'application/json' }
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?key=eq.${encodeURIComponent('kayit_aktif_' + deviceId)}&select=value`, { headers: h })
-        if (res.ok) {
-          const rows = await res.json()
+        const [masterRes, detayRes] = await Promise.all([
+          fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?key=eq.${encodeURIComponent('kayit_aktif_' + deviceId)}&select=value`, { headers: h }),
+          fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?key=eq.${encodeURIComponent('kayit_ayrinti_' + deviceId)}&select=value`, { headers: h }),
+        ])
+        if (masterRes.ok) {
+          const rows = await masterRes.json()
           if (rows.length > 0 && rows[0].value === 'false') kayitAktif = false
+        }
+        if (detayRes.ok) {
+          const rows = await detayRes.json()
+          if (rows.length > 0) {
+            try { Object.assign(aktifMetric, JSON.parse(rows[0].value)) } catch {}
+          }
         }
       } catch {}
     }
 
     if (kayitAktif) {
+      if (Object.keys(aktifMetric).length > 0) {
+        for (const k of Object.keys(payload)) {
+          if (k in aktifMetric && !aktifMetric[k]) delete payload[k]
+        }
+      }
       await query('POST', 'kolla_telemetry', payload)
     }
 

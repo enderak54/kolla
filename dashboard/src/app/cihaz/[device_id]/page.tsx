@@ -27,6 +27,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const [aiLoading, setAiLoading] = useState(false)
   const [gazSensorTip, setGazSensorTip] = useState('MQ-2')
   const [kayitAktif, setKayitAktif] = useState(true)
+  const [kayitAyrinti, setKayitAyrinti] = useState<Record<string, boolean>>({})
 
   const kayitToggle = async () => {
     const v = !kayitAktif
@@ -36,6 +37,18 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ anahtar: `kayit_aktif_${deviceId}`, deger: String(v), kategori: 'cihaz' }),
+      })
+    } catch {}
+  }
+
+  const kayitAyrintiToggle = async (metric: string) => {
+    const yeni = { ...kayitAyrinti, [metric]: !kayitAyrinti[metric] }
+    setKayitAyrinti(yeni)
+    try {
+      await fetch('/api/ayarlar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anahtar: `kayit_ayrinti_${deviceId}`, deger: JSON.stringify(yeni), kategori: 'cihaz' }),
       })
     } catch {}
   }
@@ -94,6 +107,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           if (g) { try { const arr = JSON.parse(g.deger); if (Array.isArray(arr)) setSensorGecmis(arr) } catch {} }
           const k = tr3.find((x: any) => x.anahtar === `kayit_aktif_${deviceId}`)
           if (k) setKayitAktif(k.deger === 'true')
+          const ka = tr3.find((x: any) => x.anahtar === `kayit_ayrinti_${deviceId}`)
+          if (ka) { try { setKayitAyrinti(JSON.parse(ka.deger)) } catch {} }
         }
         if (Array.isArray(km) && km.length > 0) {
           setKameraSon({ url: `https://fpcvwfqhungfeukgophd.supabase.co/storage/v1/object/public/kamera/${km[0].storage_path}`, captured_at: km[0].captured_at })
@@ -173,13 +188,29 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         <StatusBadge label="MQTT Lokal" active={data?.mqttLokal === 1} />
         <StatusBadge label="Adafruit IO" active={data?.mqttAio === 1} />
       </div>
-      <div className="w-full max-w-4xl flex items-center gap-3 mb-4 px-1">
-        <span className="text-xs text-gray-500">Geçmiş Kaydı</span>
-        <button onClick={kayitToggle}
-          className={`w-10 h-6 rounded-full relative transition-colors ${kayitAktif ? 'bg-emerald-600' : 'bg-gray-600'}`}>
-          <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${kayitAktif ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
-        </button>
-        <span className={`text-xs font-medium ${kayitAktif ? 'text-emerald-400' : 'text-gray-500'}`}>{kayitAktif ? 'Açık' : 'Kapalı'}</span>
+      <div className="w-full max-w-4xl mb-4 px-1">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-xs text-gray-500">Geçmiş Kaydı</span>
+          <button onClick={kayitToggle}
+            className={`w-10 h-6 rounded-full relative transition-colors ${kayitAktif ? 'bg-emerald-600' : 'bg-gray-600'}`}>
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${kayitAktif ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+          </button>
+          <span className={`text-xs font-medium ${kayitAktif ? 'text-emerald-400' : 'text-gray-500'}`}>{kayitAktif ? 'Açık' : 'Kapalı'}</span>
+        </div>
+        {kayitAktif && data && (
+          <div className="flex flex-wrap gap-2">
+            {['sicaklik','nem','basinc','ses','cpu','ram',...Object.keys(sensorData)].filter(m => m !== 'kapi').map(m => {
+              const etiket: Record<string, string> = { sicaklik:'Sıcaklık', nem:'Nem', basinc:'Basınç', ses:'Ses', cpu:'CPU', ram:'RAM', gaz_genel:'Gaz', lpg:'LPG', co:'CO', duman:'Duman', metan:'Metan', hidrojen:'Hidrojen', isik:'Işık', lux:'Lüks', seviye:'Seviye' }
+              const acik = kayitAyrinti[m] ?? true
+              return (
+                <button key={m} onClick={() => kayitAyrintiToggle(m)}
+                  className={`px-2 py-1 rounded text-[10px] border transition-colors ${acik ? 'bg-emerald-900/30 border-emerald-700 text-emerald-300' : 'bg-gray-800 border-gray-700 text-gray-600'}`}>
+                  {etiket[m] || m}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
       {(() => {
         const alerts: string[] = []
