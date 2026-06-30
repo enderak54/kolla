@@ -146,7 +146,21 @@ export async function POST(request: Request) {
     }
 
 
-    await query('POST', 'kolla_telemetry', payload)
+    let kayitAktif = true
+    if (anonKey) {
+      try {
+        const h = { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}`, 'Content-Type': 'application/json' }
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/kolla_ayarlar?key=eq.${encodeURIComponent('kayit_aktif_' + deviceId)}&select=value`, { headers: h })
+        if (res.ok) {
+          const rows = await res.json()
+          if (rows.length > 0 && rows[0].value === 'false') kayitAktif = false
+        }
+      } catch {}
+    }
+
+    if (kayitAktif) {
+      await query('POST', 'kolla_telemetry', payload)
+    }
 
     return Response.json({ ok: true })
   } catch (e) {

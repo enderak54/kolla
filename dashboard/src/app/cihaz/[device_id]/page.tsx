@@ -26,6 +26,19 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
   const [aiYorum, setAiYorum] = useState<string | null>(null)
   const [aiLoading, setAiLoading] = useState(false)
   const [gazSensorTip, setGazSensorTip] = useState('MQ-2')
+  const [kayitAktif, setKayitAktif] = useState(true)
+
+  const kayitToggle = async () => {
+    const v = !kayitAktif
+    setKayitAktif(v)
+    try {
+      await fetch('/api/ayarlar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anahtar: `kayit_aktif_${deviceId}`, deger: String(v), kategori: 'cihaz' }),
+      })
+    } catch {}
+  }
 
   const bildirimGonder = async (tip: string, baslik: string, mesaj: string) => {
     const key = `${tip}-${Date.now()}`
@@ -77,6 +90,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
           if (a) { try { setSensorData(JSON.parse(a.deger)) } catch {} }
           const g = tr3.find((x: any) => x.anahtar === `sensor_gecmis_${deviceId}`)
           if (g) { try { const arr = JSON.parse(g.deger); if (Array.isArray(arr)) setSensorGecmis(arr) } catch {} }
+          const k = tr3.find((x: any) => x.anahtar === `kayit_aktif_${deviceId}`)
+          if (k) setKayitAktif(k.deger === 'true')
         }
         if (Array.isArray(km) && km.length > 0) {
           setKameraSon({ url: `https://fpcvwfqhungfeukgophd.supabase.co/storage/v1/object/public/kamera/${km[0].storage_path}`, captured_at: km[0].captured_at })
@@ -155,6 +170,14 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
         </div>
         <StatusBadge label="MQTT Lokal" active={data?.mqttLokal === 1} />
         <StatusBadge label="Adafruit IO" active={data?.mqttAio === 1} />
+      </div>
+      <div className="w-full max-w-4xl flex items-center gap-3 mb-4 px-1">
+        <span className="text-xs text-gray-500">Geçmiş Kaydı</span>
+        <button onClick={kayitToggle}
+          className={`w-10 h-6 rounded-full relative transition-colors ${kayitAktif ? 'bg-emerald-600' : 'bg-gray-600'}`}>
+          <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${kayitAktif ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+        </button>
+        <span className={`text-xs font-medium ${kayitAktif ? 'text-emerald-400' : 'text-gray-500'}`}>{kayitAktif ? 'Açık' : 'Kapalı'}</span>
       </div>
       {(() => {
         const alerts: string[] = []

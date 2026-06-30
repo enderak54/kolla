@@ -152,14 +152,15 @@ export function SinyalGosterge({ rssi }: { rssi: number | undefined }) {
 
 export function OzetKarti({ data }: { data: TelemetryData[] }) {
   if (data.length === 0) return null
-  const vals = data.map(d => d.sicaklik).filter((v): v is number => v !== undefined)
-  const sicMin = Math.min(...vals); const sicMax = Math.max(...vals); const sicOrt = vals.reduce((a, b) => a + b, 0) / vals.length
-  const nemVals = data.map(d => d.nem).filter((v): v is number => v !== undefined)
-  const nemMin = Math.min(...nemVals); const nemMax = Math.max(...nemVals); const nemOrt = nemVals.reduce((a, b) => a + b, 0) / nemVals.length
-  const basincVals = data.map(d => d.basinc).filter((v): v is number => v !== undefined)
-  const basMin = Math.min(...basincVals); const basMax = Math.max(...basincVals); const basOrt = basincVals.reduce((a, b) => a + b, 0) / basincVals.length
-  const sesVals = data.map(d => d.ses).filter((v): v is number => v !== undefined)
-  const sesOrt = sesVals.length ? sesVals.reduce((a, b) => a + b, 0) / sesVals.length : 0
+  const ort = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
+  const vals = data.map(d => d.sicaklik).filter((v): v is number => v != null)
+  const sicMin = vals.length ? Math.min(...vals) : 0; const sicMax = vals.length ? Math.max(...vals) : 0; const sicOrt = ort(vals)
+  const nemVals = data.map(d => d.nem).filter((v): v is number => v != null)
+  const nemMin = nemVals.length ? Math.min(...nemVals) : 0; const nemMax = nemVals.length ? Math.max(...nemVals) : 0; const nemOrt = ort(nemVals)
+  const basincVals = data.map(d => d.basinc).filter((v): v is number => v != null)
+  const basMin = basincVals.length ? Math.min(...basincVals) : 0; const basMax = basincVals.length ? Math.max(...basincVals) : 0; const basOrt = ort(basincVals)
+  const sesVals = data.map(d => d.ses).filter((v): v is number => v != null)
+  const sesOrt = ort(sesVals)
   return (
     <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
       <h3 className="text-sm font-medium text-gray-400 mb-3">Son 24s Özet</h3>
