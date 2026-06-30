@@ -260,11 +260,14 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       })()}
       {data ? (
         <div className="w-full max-w-4xl mb-8">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-2">
+          <div className="grid grid-cols-3 gap-4 mb-2">
             <SensorCard label="Sıcaklık" value={`${data.sicaklik.toFixed(1)}°C`} color="red" threshold={thresholdMap.sicaklik} val={data.sicaklik} />
             <SensorCard label="Nem" value={`${data.nem.toFixed(0)}%`} color="blue" threshold={thresholdMap.nem} val={data.nem} />
             <SensorCard label="Basınç" value={`${data.basinc.toFixed(0)} hPa`} color="green" threshold={thresholdMap.basinc} val={data.basinc} />
+          </div>
+          <div className={`grid gap-4 mb-2 ${sensorData.isik != null ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <Card label="Ses" value={data.ses.toFixed(3)} color="yellow" />
+            {sensorData.isik != null && <Card label="Işık" value={`${sensorData.isik.toFixed(1)} lx`} color="yellow" />}
             <div className="bg-gray-800 rounded-2xl p-3 border border-gray-700 flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-gray-500 uppercase tracking-wide">Gaz</span>
@@ -284,9 +287,11 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
               {gazMetrics.every(gm => sensorValues(gm) == null) && <span className="text-xs text-gray-500">Veri yok</span>}
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+          <div className="grid grid-cols-2 gap-4 mb-2">
             <Card label="CPU" value={`${data.cpu.toFixed(1)}°C`} color="orange" />
             <Card label="RAM" value={`${(data.ram / 1024).toFixed(0)} KB`} color="purple" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
             {kapiKontrol !== 'kapali' && (
               <div className={`rounded-2xl p-4 flex flex-col items-center shadow-lg border ${kapiAcik ? 'border-red-500 bg-red-950/40' : 'border-emerald-500 bg-emerald-950/30'}`}>
                 <span className="text-xs text-gray-400 mb-0.5">Kapı ({kapiModEtiket[kapiKontrol]})</span>
@@ -294,7 +299,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
                 {kapiDegisimSayisi > 0 && <span className="text-[10px] text-gray-500">{kapiDegisimSayisi} açılma</span>}
               </div>
             )}
-            {Object.entries(sensorData).filter(([k]) => !gazMetrics.includes(k as typeof gazMetrics[number]) && !['sicaklik','nem','basinc','ses','cpu','ram','kapi'].includes(k)).map(([k, v]) => {
+            {Object.entries(sensorData).filter(([k]) => !gazMetrics.includes(k as typeof gazMetrics[number]) && !['sicaklik','nem','basinc','ses','cpu','ram','kapi','isik'].includes(k)).map(([k, v]) => {
               const renkler = ['red','blue','green','yellow','orange','purple']
               const renk = renkler[Object.keys(sensorData).indexOf(k) % renkler.length]
               const birim: Record<string, string> = { seviye: '%' }
