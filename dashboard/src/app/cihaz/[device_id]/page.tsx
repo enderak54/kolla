@@ -253,29 +253,8 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       )}
       {history.length > 0 && (
         <div className="w-full max-w-4xl mb-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div className="mb-4">
             <OzetKarti data={filteredHistory} />
-            <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
-              <span className="text-xs text-gray-500 mb-2 block">MQ-2 Gaz Sensörü</span>
-              <div className="grid grid-cols-2 gap-2">
-                {gazMetrics.filter(gm => sensorValues(gm) != null).map(gm => {
-                  const renkler: Record<string, string> = { gaz_genel:'#F97316', lpg:'#A855F7', co:'#EF4444', duman:'#6B7280', metan:'#22C55E', hidrojen:'#3B82F6' }
-                  const deger = sensorValues(gm)!
-                  const esik = thresholdMap[gm]
-                  const alarm = esik?.enabled && (deger < esik.min_val || deger > esik.max_val)
-                  return (
-                    <div key={gm} className={`rounded-xl p-3 flex flex-col items-center ${alarm ? 'bg-red-950/40 border border-red-500' : 'bg-gray-900/50'}`}>
-                      <span className="text-[10px] text-gray-500 uppercase">{gazEtiket[gm]}</span>
-                      <span className="text-lg font-semibold" style={{color: renkler[gm]}}>{deger}</span>
-                      <span className="text-[10px] text-gray-600">ppm</span>
-                    </div>
-                  )
-                })}
-                {gazMetrics.every(gm => sensorValues(gm) == null) && (
-                  <p className="text-gray-500 text-sm col-span-2 text-center py-4">Henüz veri yok</p>
-                )}
-              </div>
-            </div>
           </div>
           <div className="flex gap-2 mb-4 items-center flex-wrap">
             {[[3600,'1s'], [21600,'6s'], [86400,'24s']].map(([s, l]) => (

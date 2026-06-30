@@ -153,21 +153,35 @@ export function SinyalGosterge({ rssi }: { rssi: number | undefined }) {
 export function OzetKarti({ data }: { data: TelemetryData[] }) {
   if (data.length === 0) return null
   const vals = data.map(d => d.sicaklik).filter((v): v is number => v !== undefined)
-  const min = Math.min(...vals); const max = Math.max(...vals); const ort = vals.reduce((a, b) => a + b, 0) / vals.length
+  const sicMin = Math.min(...vals); const sicMax = Math.max(...vals); const sicOrt = vals.reduce((a, b) => a + b, 0) / vals.length
   const nemVals = data.map(d => d.nem).filter((v): v is number => v !== undefined)
-  const nemMin = Math.min(...nemVals); const nemMax = Math.max(...nemVals)
+  const nemMin = Math.min(...nemVals); const nemMax = Math.max(...nemVals); const nemOrt = nemVals.reduce((a, b) => a + b, 0) / nemVals.length
+  const basincVals = data.map(d => d.basinc).filter((v): v is number => v !== undefined)
+  const basMin = Math.min(...basincVals); const basMax = Math.max(...basincVals); const basOrt = basincVals.reduce((a, b) => a + b, 0) / basincVals.length
+  const sesVals = data.map(d => d.ses).filter((v): v is number => v !== undefined)
+  const sesOrt = sesVals.length ? sesVals.reduce((a, b) => a + b, 0) / sesVals.length : 0
   return (
     <div className="bg-gray-800 rounded-2xl p-4 border border-gray-700">
       <h3 className="text-sm font-medium text-gray-400 mb-3">Son 24s Özet</h3>
-      <div className="grid grid-cols-3 gap-3 text-center">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
         <div>
           <span className="text-[10px] text-gray-500">Sıcaklık</span>
-          <p className="text-emerald-300 text-lg font-semibold">{ort.toFixed(1)}°C</p>
-          <p className="text-[10px] text-gray-600">{min.toFixed(1)} - {max.toFixed(1)}</p>
+          <p className="text-emerald-300 text-lg font-semibold">{sicOrt.toFixed(1)}°C</p>
+          <p className="text-[10px] text-gray-600">{sicMin.toFixed(1)} - {sicMax.toFixed(1)}</p>
         </div>
         <div>
           <span className="text-[10px] text-gray-500">Nem</span>
-          <p className="text-sky-300 text-lg font-semibold">{nemMin.toFixed(0)}-{nemMax.toFixed(0)}%</p>
+          <p className="text-sky-300 text-lg font-semibold">{nemOrt.toFixed(0)}%</p>
+          <p className="text-[10px] text-gray-600">{nemMin.toFixed(0)} - {nemMax.toFixed(0)}%</p>
+        </div>
+        <div>
+          <span className="text-[10px] text-gray-500">Basınç</span>
+          <p className="text-green-300 text-lg font-semibold">{basOrt.toFixed(0)} hPa</p>
+          <p className="text-[10px] text-gray-600">{basMin.toFixed(0)} - {basMax.toFixed(0)}</p>
+        </div>
+        <div>
+          <span className="text-[10px] text-gray-500">Ses</span>
+          <p className="text-yellow-300 text-lg font-semibold">{sesOrt.toFixed(2)}</p>
         </div>
         <div>
           <span className="text-[10px] text-gray-500">Veri</span>
