@@ -280,7 +280,7 @@ export default function CihazDetay({ params }: { params: Promise<{ device_id: st
       )}
       {aiYorum && (
         <div className="w-full max-w-4xl mb-4 p-4 rounded-2xl border border-emerald-700 bg-emerald-950/20">
-          <p className="text-sm font-semibold text-emerald-400 mb-1">🤖 Kolla Yorumu</p>
+          <p className="text-sm font-semibold text-emerald-400 mb-1">🤖 Kolla Beni YZ</p>
           <p className="text-sm text-gray-300 leading-relaxed">{aiYorum}</p>
         </div>
       )}
