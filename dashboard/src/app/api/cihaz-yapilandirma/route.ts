@@ -50,7 +50,10 @@ export async function GET(request: Request) {
     const deviceId = url.searchParams.get('device_id')
     if (!deviceId) return Response.json({ error: 'device_id gerekli' }, { status: 400 })
 
-    const rows = await sb('GET', `kolla_cihazlar?device_id=eq.${deviceId}&limit=1`)
+    let rows = await sb('GET', `kolla_cihazlar?device_id=eq.${deviceId}&limit=1`)
+    if (!rows || rows.length === 0) {
+      rows = await sb('GET', `kolla_devices?device_id=eq.${deviceId}&limit=1`)
+    }
     if (!rows || rows.length === 0) {
       return Response.json({ error: 'cihaz bulunamadi' }, { status: 404 })
     }
