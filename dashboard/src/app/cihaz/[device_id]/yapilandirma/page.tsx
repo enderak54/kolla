@@ -59,7 +59,7 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
       try {
         const res = await fetch(`/api/cihaz-yapilandirma?device_id=${encodeURIComponent(deviceId)}`)
         const data = await res.json()
-        if (data.error) { setMesaj(data.error); return }
+        if (!res.ok || data.error) { setMesaj(data.error || 'cihaz bulunamadi'); setLoading(false); return }
         setConfig(data)
         setAd(data.ad || '')
         setAralik(data.gonderim_araligi || 5000)
@@ -164,6 +164,8 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
 
         {loading ? (
           <p className="text-gray-500">Yükleniyor...</p>
+        ) : !config ? (
+          <p className="text-gray-500">Cihaz bulunamadı.</p>
         ) : (
           <div className="space-y-6">
             <div className="bg-gray-800 rounded-2xl p-5 border border-gray-700">
@@ -213,13 +215,13 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
               <h2 className="text-lg font-semibold mb-4">Geçmiş Kaydı</h2>
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-sm text-gray-400">Ana Kayıt</span>
-                <button onClick={() => setKayitAktif(!kayitAktif)}
+                <button type="button" onClick={() => setKayitAktif(!kayitAktif)}
                   className={`w-10 h-6 rounded-full relative transition-colors ${kayitAktif ? 'bg-emerald-600' : 'bg-gray-600'}`}>
                   <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${kayitAktif ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
                 </button>
                 <span className={`text-sm font-medium ${kayitAktif ? 'text-emerald-400' : 'text-gray-500'}`}>{kayitAktif ? 'Açık' : 'Kapalı'}</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-wrap -mx-1">
                 {[
                   { key: 'sicaklik', label: 'Sıcaklık' },
                   { key: 'nem', label: 'Nem' },
@@ -230,12 +232,14 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                   { key: 'cpu', label: 'CPU' },
                   { key: 'ram', label: 'RAM' },
                 ].map(m => (
-                  <div key={m.key} className="flex items-center gap-2 justify-between">
-                    <span className={`text-xs ${(kayitAyrinti[m.key] ?? true) ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</span>
-                    <button onClick={() => kayitAyrintiToggle(m.key)}
-                      className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${(kayitAyrinti[m.key] ?? true) ? 'bg-emerald-600' : 'bg-gray-600'}`}>
-                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${(kayitAyrinti[m.key] ?? true) ? 'translate-x-[16px]' : 'translate-x-0.5'}`} />
-                    </button>
+                  <div key={m.key} className="w-1/3 px-1 mb-2">
+                    <div className="flex items-center gap-1">
+                      <span className={`text-xs ${(kayitAyrinti[m.key] ?? true) ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</span>
+                      <button type="button" onClick={() => kayitAyrintiToggle(m.key)}
+                        className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${(kayitAyrinti[m.key] ?? true) ? 'bg-emerald-600' : 'bg-gray-600'}`}>
+                        <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${(kayitAyrinti[m.key] ?? true) ? 'translate-x-[16px]' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -259,7 +263,7 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                 <div className="space-y-2">
                   {sensors.map(s => (
                     <div key={s.id} className="flex items-center gap-3 bg-gray-700/50 rounded-xl px-4 py-3">
-                      <button onClick={() => sensorToggle(s.id)}
+                      <button type="button" onClick={() => sensorToggle(s.id)}
                         className={`w-10 h-6 rounded-full relative transition-colors ${s.aktif ? 'bg-emerald-600' : 'bg-gray-600'}`}>
                         <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${s.aktif ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
                       </button>
@@ -268,7 +272,7 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                         <input value={s.etiket} onChange={e => sensorEtiketDegistir(s.id, e.target.value)}
                           className="w-full bg-transparent text-sm text-white border-b border-gray-600 focus:border-emerald-500 outline-none" />
                       </div>
-                      <button onClick={() => sensorSil(s.id)}
+                      <button type="button" onClick={() => sensorSil(s.id)}
                         className="text-red-400 hover:text-red-300 text-xs px-2 py-1">Sil</button>
                     </div>
                   ))}
