@@ -1,28 +1,23 @@
 const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
 
 async function sb(method: string, path: string, body?: any) {
-  const tables = ['kolla_cihazlar', 'kolla_devices']
-  for (const table of tables) {
-    const p = path.includes('?') ? path.replace(/^[^?]+/, table) : table
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/${p}`, {
-      method,
-      headers: {
-        'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-        'Content-Type': 'application/json',
-        'Prefer': method === 'POST' ? 'return=minimal' : 'return=representation',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    })
-    if (res.ok) {
-      if (method === 'DELETE') return null
-      return res.json()
-    }
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
+    headers: {
+      'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=minimal' : 'return=representation',
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
     const text = await res.text()
-    if (res.status === 404 && text.includes('PGRST205')) continue
+    if (res.status === 404 && text.includes('PGRST205')) return null
     throw new Error(`${res.status}: ${text}`)
   }
-  throw new Error('no suitable table found')
+  if (method === 'DELETE') return null
+  return res.json()
 }
 
 async function sbAyarlar(method: string, path: string, body?: any) {
