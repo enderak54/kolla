@@ -1,13 +1,14 @@
 const SUPABASE_URL = 'https://fpcvwfqhungfeukgophd.supabase.co'
 
 async function sb(method: string, path: string, body?: any) {
+  const prefer = (method === 'POST' || method === 'PATCH') ? 'return=minimal' : 'return=representation'
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
       'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
       'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=minimal' : 'return=representation',
+      'Prefer': prefer,
     },
     body: body ? JSON.stringify(body) : undefined,
   })
@@ -17,22 +18,27 @@ async function sb(method: string, path: string, body?: any) {
     throw new Error(`${res.status}: ${text}`)
   }
   if (method === 'DELETE') return null
-  return res.json()
+  const text = await res.text()
+  if (!text) return null
+  return JSON.parse(text)
 }
 
 async function sbAyarlar(method: string, path: string, body?: any) {
+  const prefer = (method === 'POST' || method === 'PATCH') ? 'return=minimal' : 'return=representation'
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
     method,
     headers: {
       'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
       'Content-Type': 'application/json',
-      'Prefer': method === 'POST' ? 'return=minimal' : 'return=representation',
+      'Prefer': prefer,
     },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) { const t = await res.text(); throw new Error(`${res.status}: ${t}`) }
-  return res.json()
+  const text = await res.text()
+  if (!text) return null
+  return JSON.parse(text)
 }
 
 function ayarlarAnahtar(deviceId: string, field: string) {
