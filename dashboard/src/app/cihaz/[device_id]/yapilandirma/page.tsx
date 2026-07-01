@@ -219,7 +219,7 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                 </button>
                 <span className={`text-sm font-medium ${kayitAktif ? 'text-emerald-400' : 'text-gray-500'}`}>{kayitAktif ? 'Açık' : 'Kapalı'}</span>
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 {[
                   { key: 'sicaklik', label: 'Sıcaklık' },
                   { key: 'nem', label: 'Nem' },
@@ -230,12 +230,12 @@ export default function CihazYapilandirma({ params }: { params: Promise<{ device
                   { key: 'cpu', label: 'CPU' },
                   { key: 'ram', label: 'RAM' },
                 ].map(m => (
-                  <div key={m.key} className="flex items-center gap-3">
+                  <div key={m.key} className="flex items-center gap-2 justify-between">
+                    <span className={`text-xs ${(kayitAyrinti[m.key] ?? true) ? 'text-gray-300' : 'text-gray-600'}`}>{m.label}</span>
                     <button onClick={() => kayitAyrintiToggle(m.key)}
-                      className={`w-10 h-6 rounded-full relative transition-colors ${(kayitAyrinti[m.key] ?? true) ? 'bg-emerald-600' : 'bg-gray-600'}`}>
-                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${(kayitAyrinti[m.key] ?? true) ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
+                      className={`w-9 h-5 rounded-full relative transition-colors shrink-0 ${(kayitAyrinti[m.key] ?? true) ? 'bg-emerald-600' : 'bg-gray-600'}`}>
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${(kayitAyrinti[m.key] ?? true) ? 'translate-x-[16px]' : 'translate-x-0.5'}`} />
                     </button>
-                    <span className={`text-sm ${(kayitAyrinti[m.key] ?? true) ? 'text-emerald-300' : 'text-gray-500'}`}>{m.label}</span>
                   </div>
                 ))}
               </div>
